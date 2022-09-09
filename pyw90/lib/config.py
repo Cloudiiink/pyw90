@@ -68,10 +68,15 @@ class Config():
         # dis windows dict with keys and values to be optimized
         self.opt_ini_dis = OrderedDict([(k, self.ini_dis[k]) 
                             for i, k in enumerate(self.dis_keys) if self.mask[i] ])
+                            
+        # TODO `LinearConstraint` is used in `COBYLA` method, but Constraint option `keep_feasible` is ignored by this method now (scipy==1.9.1).
         self.opt_constraint = LinearConstraint(np.diag([1] * len(self.opt_ini_dis)),
                                                self.lbs[self.mask],
-                                               self.ubs[self.mask],
-                                               keep_feasible=True)
+                                               self.ubs[self.mask])
+        # self.opt_constraint = LinearConstraint(np.diag([1] * len(self.opt_ini_dis)),
+        #                                        self.lbs[self.mask],
+        #                                        self.ubs[self.mask],
+        #                                        keep_feasible=True)
 
         self.num_print_check = int(data['num_print_check'])
         self.check_time = int(data['check_time'])

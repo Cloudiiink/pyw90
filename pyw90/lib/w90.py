@@ -2,7 +2,7 @@ import re, os, copy
 import numpy as np
 from numpy.typing import ArrayLike
 import pandas as pd
-from typing import Dict, List
+from typing import Dict, Tuple
 import matplotlib.pyplot as plt
 from collections import OrderedDict
 from scipy import interpolate
@@ -92,7 +92,7 @@ class W90():
         r'''
         Read parameters from `self._win` file.
         '''
-        with open(self._win) as f:
+        with open(f'{self._dname}/{self._win}') as f:
             dat = [line.strip() for line in f if line.strip()]
 
         for l in dat:
@@ -112,7 +112,7 @@ class W90():
             if r:
                 self.win_min = eval(r.group(1))
 
-    def plot_eigenval(self, erange:List[float, float]=None, separate:bool=False, savefig:str='eigenval_dis.png'):
+    def plot_eigenval(self, erange:Tuple[float,float]=None, separate:bool=False, savefig:str='eigenval_dis.png'):
         r'''
         Plot the eigenvalue distribution of each bands. When `separate` is `False`, we will merge the distribution of bands when there is no global gap.
 
@@ -163,9 +163,9 @@ class W90():
         ax.set(ylabel='Energy / eV')
         ax.grid()
 
-        plt.savefig(savefig, dpi=200, bbox_inches='tight', transparent=True)
+        plt.savefig(f'{self._dname}/{savefig}', dpi=200, bbox_inches='tight', transparent=True)
 
-    def report_eigenval(self, erange:List[float, float]=None, separate:bool=False):
+    def report_eigenval(self, erange:Tuple[float,float]=None, separate:bool=False):
         r'''
         Print the table of the eigenvalue distribution of each bands. When `separate` is `False`, we will merge the distribution of bands when there is no global gap.
 
@@ -205,7 +205,7 @@ class W90():
                     print(f'  {i:3d}    {emin:+10.5f}  {emax:+10.5f}')
         print('--------------------------------')
     
-    def count_states_most(self, erange:List[float, float]) -> int:
+    def count_states_most(self, erange:Tuple[float,float]) -> int:
         r'''
         Return maximium number of states inside the energy interval defined in `erange` on all calculated k-points. Used in `dis_froz_max` and `dis_froz_min` check.
 
@@ -215,7 +215,7 @@ class W90():
         mask = np.logical_and(self.eband_min <= emax, self.eband_max >= emin)
         return sum(mask)
 
-    def count_states_least(self, erange:List[float, float]) -> int:
+    def count_states_least(self, erange:Tuple[float,float]) -> int:
         r'''
         Return the minimum number of states inside the energy interval defined in `erange` on all calculated k-points. Used in `dis_win_max` check.
 
@@ -271,7 +271,7 @@ class W90():
         res = int(self.emax) + 1. if idx >= self.nbnds else self.eband_min[idx] - self.eps
         return res
 
-    def get_dis_froz_df(self, erange:List[float, float]) -> pd.DataFrame:
+    def get_dis_froz_df(self, erange:Tuple[float,float]) -> pd.DataFrame:
         r'''
         Return `pd.DataFrame` with suggested frozen window inside the given energy interval.
 
@@ -313,11 +313,11 @@ class W90():
         else:
             return pd.DataFrame(columns=['dis_froz_min', 'dis_froz_max'])
 
-    def edit_win(self, dis_dict:Dict[str: float]):
+    def edit_win(self, dis_dict:Dict[str,float]):
         r'''
         Edit `self._sys.win` file with input dis windows from `dis_dict`.
         '''
-        with open(self._win, 'r+') as file:
+        with open(f'{self._dname}/{self._win}', 'r+') as file:
             lines = file.readlines()
 
         for idx, line in enumerate(lines):
@@ -327,7 +327,7 @@ class W90():
                 if m:
                     lines[idx] = '{0:<17s} = {1}\n'.format(m.group(0), dis_dict[key])
 
-        with open(self._win, 'w+') as file:
+        with open(f'{self._dname}/{self._win}', 'w+') as file:
             file.writelines(lines)
 
     def evaluate(self, mode:str='AbAk') -> float:
@@ -339,8 +339,8 @@ class W90():
 
         :param mode: 'AbAk', 'AbMk', 'MbAk', 'MbMk'. The abberation of `A` and `M` means `Average` and `Maximum`. And the abberation of `b` and `k` means bands and k-points. During the test, `AbAk` gives the best result and it becomes the default mode. It might need to switch to other evaluation in some special cases.
         """
-        vkk, vee = self._parse_dat(f'{self.config.vasp_bnd}')
-        wkk, wee = self._parse_dat(f'{self.config.w90_bnd}')
+        vkk, vee = self._parse_dat(f'{self._dname}/{self.config.vasp_bnd}')
+        wkk, wee = self._parse_dat(f'{self._dname}/{self.config.w90_bnd}')
         kernel = self.config.kernel
         nbnds, _ = wee.shape                    # num of bands in wannier90
         w2v_ratio = np.max(vkk) / np.max(wkk)   # Theoretically, it should be 2 * pi or 1
@@ -400,7 +400,7 @@ class W90():
         r'''
         Return spread message from `.wout` file.
         '''
-        conv_str = os.popen(f'grep CONV {self._sys}.wout').read().split('\n')
+        conv_str = os.popen(f'grep CONV {self._dname}/{self._sys}.wout').read().split('\n')
         if len(conv_str) > 4:
             conv = conv_str[3:-1]
             spread = np.array([eval(c.split()[3]) for c in conv])
@@ -408,7 +408,7 @@ class W90():
         else:
             return None
 
-    def opt_dis_dict(self, opt_input:ArrayLike) -> Dict[str: float]:
+    def opt_dis_dict(self, opt_input:ArrayLike) -> Dict[str,float]:
         r"""
         generate optimized `dis windows` dict from input array
 
@@ -418,7 +418,7 @@ class W90():
             raise ValueError(f'There are only {len(self.config.opt_ini_dis)} parameters but {len(opt_input)} input!')
         return OrderedDict([(k, v) for v, k in zip(opt_input, self.config.opt_ini_dis.keys())])
 
-    def total_dis_dict(self, opt_input:ArrayLike) -> Dict[str: float]:
+    def total_dis_dict(self, opt_input:ArrayLike) -> Dict[str,float]:
         r'''
         Get full `dis_windows` with value with replacing `None` to `\pm self.inf`
 
@@ -470,7 +470,7 @@ class W90():
                 logger.info("|              {0} {1:<12s}      {2: <+9.4f}   {3:<8} to {4:<18}  |".format(fix, key, v, self.config.lbs[idx], self.config.ubs[idx]))
         logger.info(f"+{''.center(78, '-')}+")
 
-    def rational_opt_input(self, opt_input:ArrayLike) -> Dict[str: float]:
+    def rational_opt_input(self, opt_input:ArrayLike) -> Dict[str,float]:
         r'''
         Return rationalized full dis windows dict from input. `Wannier90` requires at most #WFs of states inside the frozen energy window and at least #WFs of states inside the dis energy window. We treat the input `dis_win_min` as beginning to generate `dis_froz_max`, `dis_froz_min` and `dis_win_max` which satisifying the requirement of `Wannier90`.
         
@@ -524,7 +524,7 @@ class W90():
             logger.info(f'|{i+1:4d} |{max_str_i:<32s}||{i+1:4d} |{ave_str_i:<32s}|')
         logger.info(f"+-----+{'-'*32}++-----+{'-'*32}+")
 
-    def _parse_dat(self, datfile:str) -> List[ArrayLike, ArrayLike]:
+    def _parse_dat(self, datfile:str) -> Tuple[ArrayLike, ArrayLike]:
         r'''
         return the k-distance array and eigenvalue array from `.dat` file.
         '''
