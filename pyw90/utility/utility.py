@@ -59,3 +59,13 @@ def _replace_str_boolean(d):
         else:
             raise ValueError(f'Wrong Value in {d}')
     return d
+
+def show_all_fonts():
+    r'''
+    Print the list of all the fonts currently available for Matplotlib
+    '''
+    # Ref: https://stackoverflow.com/questions/8753835/how-to-get-a-list-of-all-the-fonts-currently-available-for-matplotlib
+    from matplotlib import font_manager as fm
+    fpaths = fm.findSystemFonts()
+    family_name = set([fm.get_font(i).family_name for i in fpaths])
+    print(sorted(family_name))
