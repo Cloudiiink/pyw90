@@ -1,0 +1,36 @@
+SYSTEM = GaAs
+
+# Start parameter for this run
+  PREC   = Accurate
+  ISTART = 0
+  ICHARG = 11 # 2
+  LREAL  = .FALSE.
+
+# Electronic Relaxation   
+  EDIFF  = 1.0E-06
+  ENCUT  = 520
+  ALGO   = Fast
+  NELMIN = 6
+  NELM   = 200
+  LORBIT = 11
+
+# DOS related values 
+  ISMEAR = -5
+  # SIGMA  = 0.01
+  EMIN   = -15
+  EMAX   = 15
+  NEDOS  = 30001
+
+# Writing items
+  LWAVE  = .FALSE.
+  LCHARG = .TRUE.
+  LVTOT  = .FALSE.
+
+# Speed up parameters
+  # NCORE  = 9
+  # LPLANE = .TRUE.
+  # LSCALU = .FALSE.
+  # NSIM   = 4
+
+# Wannier90
+  LWANNIER90 = .TRUE.

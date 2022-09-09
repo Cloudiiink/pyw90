@@ -1,0 +1,28 @@
+#!/bin/bash
+#
+#SBATCH --job-name=GaAs
+#SBATCH --output=job_%j.out
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=36
+#SBATCH --time=72:00:00
+#SBATCH --partition=regular
+
+ulimit -s unlimited
+ulimit -c unlimited
+
+module load mpi/intelmpi/2017.4.239
+module load apps/vasp/5.4.4/wannier90_intel_2017.4.239
+
+EXE=vasp_std
+
+# run the job
+srun --mpi=pmi2 $EXE
+
+# calculate the band structure & dos
+cd ./bnd
+ln -s ../CHGCAR CHGCAR
+srun --mpi=pmi2 $EXE
+
+cd ../wannier
+ln -s ../CHGCAR CHGCAR
+srun --mpi=pmi2 $EXE

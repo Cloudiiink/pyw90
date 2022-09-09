@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+#SBATCH --job-name=w90
+#SBATCH --output=job_%j.out
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=36
+#SBATCH --time=72:00:00
+#SBATCH --partition=regular
+
+ulimit -s unlimited
+ulimit -c unlimited
+
+module load mpi/intelmpi/2017.4.239
+module load apps/wannier90/3.0/intel_2017.4.239
+
+EXE=wannier90.x
+#EXE=postw90.x
+SYSTEM="wannier90"
+
+# run the job
+srun --mpi=pmi2 $EXE $SYSTEM

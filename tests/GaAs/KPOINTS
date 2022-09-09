@@ -1,0 +1,4 @@
+Fully automatic mesh
+0              ! 0 -> automatic generation scheme
+Auto           ! fully automatic
+  50           ! length (R_k)
