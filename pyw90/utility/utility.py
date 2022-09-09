@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.typing import ArrayLike
-import copy
+from typing import Callable
+import os, re, copy
 
 def gaussian(x:ArrayLike, mid:float= 0, width:float=3, normalized:bool=False) -> ArrayLike:
     r'''
@@ -25,6 +26,17 @@ def unit(x:ArrayLike, mid:float=0, width:float=3) -> ArrayLike:
     '''
     res = np.abs(x-mid) < width
     return res.astype(float)
+
+def parse_kernel(kernel_str:str, mid:float, width:float) -> Callable[[ArrayLike],ArrayLike]:
+    r'''
+    Return the lambda function with given parameters.
+    '''
+    if kernel_str[0].lower() == 'u':
+        return lambda x: unit(x, mid=mid, width=width)
+    elif kernel_str[0].lower() == 'g':
+        return lambda x: gaussian(x, mid=mid, width=width)
+    else:
+        raise ValueError(f"Unrecognized parameters: {kernel_str}")
 
 def _replace_str_none(l):
     r'''
@@ -69,3 +81,18 @@ def show_all_fonts():
     fpaths = fm.findSystemFonts()
     family_name = set([fm.get_font(i).family_name for i in fpaths])
     print(sorted(family_name))
+
+def get_efermi(args, direct=False) -> float:
+    r'''
+    Return the Fermi level from `vasprun.xml` in `args.path` folder.
+    
+    If `direct` is True, function will return `args.efermi` (Fermi level from the argument) directly.
+    '''
+    if not direct and args.efermi:
+        efermi = float(args.efermi)
+    else:
+        vasprun = os.path.join(args.path, 'vasprun.xml')
+        efermi_str = os.popen(f'grep fermi {vasprun}').read().strip()
+        m = re.match('.+ ((\-|\+)?\d+(\.\d+)?) .+', efermi_str)
+        efermi = float(m.groups()[0])
+    return efermi

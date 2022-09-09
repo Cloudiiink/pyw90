@@ -3,7 +3,7 @@ import numpy as np
 from collections import OrderedDict
 from scipy.optimize import Bounds, LinearConstraint
 
-from utility.utility import gaussian, unit
+from utility.utility import gaussian, unit, parse_kernel
 from utility.utility import _replace_str_boolean, _replace_str_none
 
 import logging
@@ -42,12 +42,7 @@ class Config():
 
         kernel_str, mid, width = data['kernel']
         self.kernel_str = f'{kernel_str}, mid: {mid}, width: {width}'
-        if kernel_str[0].lower() == 'u':
-            self.kernel = lambda x: unit(x, mid=mid, width=width)
-        elif kernel_str[0].lower() == 'g':
-            self.kernel = lambda x: gaussian(x, mid=mid, width=width)
-        else:
-            raise ValueError(f"Unrecognized parameters: {data['kernel']}")
+        self.kernel = parse_kernel(kernel_str, mid, width)
 
         self.dis_keys = ['dis_win_max', 'dis_froz_max', 'dis_froz_min', 'dis_win_min']
         self.ini_dis = OrderedDict([(key, _replace_str_none(data['ini_dis'])[key]) 

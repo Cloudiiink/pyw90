@@ -17,7 +17,7 @@ class W90():
     r'''
     This is main class of `Auto-Wannier90-Fit` and contains necessary `dis_windows` parameters for `Wannier90`. The class also offers methods including `dis_window` suggestion and evaluating the quality of Wannier Functions.
     '''
-    def __init__(self, config:Config, path:str='.', nbnds_excl:int=None, ndeg:int=1):
+    def __init__(self, config:Config=None, win:str='wannier90.win', efermi=0, nwann=0, path:str='.', nbnds_excl:int=None, ndeg:int=1):
         '''
         Init
 
@@ -26,13 +26,19 @@ class W90():
         :param ndeg: Degeneracy of bands. Only used in calcution of number Wannier functions from number of projections, i.e. #WFs = ndeg * #projs
         '''
         self.config = config
-        self._win   = config.win
+        if self.config != None:
+            self._win   = config.win
+            self.efermi = config.efermi
+            self.nwann  = config.nwann
+        else:
+            self._win   = win
+            self.efermi = efermi
+            self.nwann  = nwann
+
         self._sys   = self._win[:-4]
         self._fname = self._sys + '.eig'
         self._dname = path    # the directory containing the input file
-        self.efermi = config.efermi
         self.nbnds_excl = nbnds_excl
-        self.nwann  = config.nwann
         self.ndeg   = ndeg      # denegeracy of bands, actually need to set 2 only meets Kramers degeneracy.
         self.eps    = 4.0e-3     # tolerance for generate `dis_windows`
         self.inf    = 1.0e+6     # evaluate self.inf when job meets illegal input `dis_windows`
@@ -330,7 +336,94 @@ class W90():
         with open(f'{self._dname}/{self._win}', 'w+') as file:
             file.writelines(lines)
 
-    def evaluate(self, mode:str='AbAk') -> float:
+    def update_bands(self):
+        r'''
+        Parse and update the band data from VASP `config.vasp_bnd` file and Wannier90 `config.w90_bnd` file.
+
+        updated values:
+        self.vkk, self.vee  : VASP band data
+        self.wkk, self.wee  : Wannier90 band data
+        self.w2v_ratio      : ratio of k-distance. Theoretically, it should be 2 * pi or 1
+        self.nbnds_excl     : Number of VASP bands below the lowest Wannier90 band
+        '''
+        self.vkk, self.vee = self._parse_dat(f'{self._dname}/{self.config.vasp_bnd}')
+        self.wkk, self.wee = self._parse_dat(f'{self._dname}/{self.config.w90_bnd}')
+        self.w2v_ratio = np.max(self.vkk) / np.max(self.wkk)   # Theoretically, it should be 2 * pi or 1
+
+        # Use eigenvalues in first k-point to align W90 data and VASP data
+        ve, we = self.vee[:, 0], self.wee[:, 0]
+        Nv, Nw = len(ve), len(we)
+        diff = np.array([np.sum(np.abs(ve[i:i+Nw] - we)) for i in range(Nv-Nw+1)])
+        self.nbnds_excl = np.argmin(diff)
+
+    def plot_cmp_vasp_w90(self, name:str, ylim=None, font="Open Sans", size=18):
+        r'''
+        Plot VASP band and Wannier90 band with legend. The file name is `{name}_VASP_W90_cmp.png`
+        '''
+        self.update_bands()
+        output_figure = os.path.join(self._dname, f'{name}_VASP_W90_cmp.png')
+
+        # general options for plot
+        plt.rcParams['font.family'] = font
+        plt.rcParams['font.weight'] = "regular"
+        plt.rcParams['font.size']   = size
+
+        # plot
+        fig, ax = plt.subplots(figsize=(8, 6))
+
+        for idx, EE in enumerate(self.vee):
+            ax.plot(self.vkk / self.w2v_ratio,
+                    EE - self.efermi,
+                    'k-',
+                    label='VASP' if idx==0 else None)
+        for idx, EE in enumerate(self.wee):
+            ax.plot(self.wkk[::1],
+                    EE[::1] - self.efermi,
+                    'r--',
+                    label='Wannier90' if idx==0 else None)
+
+        # kpoints labels: from `wannier90_band.labelinfo.dat` file
+        labelinfo = os.path.join(self._dname, 'wannier90_band.labelinfo.dat')
+        with open(labelinfo, 'r') as f:
+            lines = f.readlines()
+        label = [l.split()[0] for l in lines]
+        logger.info(f"k label: {label}")
+        k_node = [eval(l.split()[2]) for l in lines]
+        for i, lab in enumerate(label):
+            if lab[-1].isdigit():
+                label[i] = lab[:-1] + r'$_' + lab[-1] + r'$'
+    
+        ax.set_xlim(k_node[0], k_node[-1])
+        # put tickmarks and labels at node positions
+        ax.set_xticks(k_node)
+        ax.set_xticklabels(label)
+        # add vertical lines at node positions
+        ax.grid(axis='x')
+        ax.hlines(y=0, xmin=k_node[0], xmax= k_node[-1], color="grey", linestyles="dashed", lw=0.5)
+        ax.set_ylabel("Energy / eV")
+
+        # get plot bound
+        if not ylim:
+            ylim = (self.wee.min()-self.efermi-1, self.wee.max()-self.efermi+1)
+        ax.set_ylim(ylim)
+        logger.info(f"Energy range: {ylim}")
+
+        # legend
+        # ------
+        ax.legend(fancybox=False,
+                  shadow=False,
+                  frameon=True, #False,
+                  framealpha=1.0,
+                  facecolor='white',
+                  edgecolor='black',
+                  loc='upper right',
+                  prop={'size': 14})
+
+        # plt.show()
+        plt.savefig(output_figure,  bbox_inches='tight', transparent=True, dpi=300)
+        print(f"Output figure: {output_figure}")
+
+    def evaluate(self, mode:str='AbAk', kernel=None) -> float:
         r"""
         Calculate the difference between VASP band and Wannier90 band.
 
@@ -339,34 +432,26 @@ class W90():
 
         :param mode: 'AbAk', 'AbMk', 'MbAk', 'MbMk'. The abberation of `A` and `M` means `Average` and `Maximum`. And the abberation of `b` and `k` means bands and k-points. During the test, `AbAk` gives the best result and it becomes the default mode. It might need to switch to other evaluation in some special cases.
         """
-        vkk, vee = self._parse_dat(f'{self._dname}/{self.config.vasp_bnd}')
-        wkk, wee = self._parse_dat(f'{self._dname}/{self.config.w90_bnd}')
-        kernel = self.config.kernel
-        nbnds, _ = wee.shape                    # num of bands in wannier90
-        w2v_ratio = np.max(vkk) / np.max(wkk)   # Theoretically, it should be 2 * pi or 1
-
-        # Use eigenvalues in first k-point to align W90 data and VASP data
-        ve, we = vee[:, 0], wee[:, 0]
-        Nv, Nw = len(ve), len(we)
-        diff = np.array([np.sum(np.abs(ve[i:i+Nw] - we)) for i in range(Nv-Nw+1)])
-        nbnds_excl = np.argmin(diff)
+        self.update_bands()
+        kernel = self.config.kernel if kernel == None else kernel
+        nbnds, _ = self.wee.shape                    # num of bands in wannier90
 
         dEs, wgts, dEs_max, wgts_max = [], [], [], []
 
         # mask of VASP data
-        diff_vkk = vkk[1:] - vkk[:-1]
+        diff_vkk = self.vkk[1:] -self.vkk[:-1]
         vmask = [True] + list(np.logical_not(diff_vkk < 1e-7))
         # mask of W90 data
-        diff_wkk = wkk[1:] - wkk[:-1]
+        diff_wkk = self.wkk[1:] - self.wkk[:-1]
         wmask = list(np.logical_not(diff_wkk < 1e-7)) + [True]
 
         for i in range(nbnds):
             # Interpolation need to remove the duplicates
             # REF: https://stackoverflow.com/questions/12054060/scipys-splrep-splev-for-python-interpolation-returns-nan
 
-            tck = interpolate.splrep(wkk[wmask], wee[i][wmask])
-            fit_wee_i = interpolate.splev(vkk[vmask] / w2v_ratio, tck)
-            vee_i = vee[i + nbnds_excl][vmask]
+            tck = interpolate.splrep(self.wkk[wmask], self.wee[i][wmask])
+            fit_wee_i = interpolate.splev(self.vkk[vmask] / self.w2v_ratio, tck)
+            vee_i = self.vee[i + self.nbnds_excl][vmask]
 
             dEi = fit_wee_i - vee_i
             # Using filter to smooth the data and remove
@@ -374,8 +459,8 @@ class W90():
             dEi =  np.abs(savgol_filter(dEi, 9, 2))
 
             # ! AVERAGE DISTANCE
-            dEs.append(np.sum(kernel(vee[i + nbnds_excl][vmask]) * dEi) / len(dEi) * 1000)
-            wgts.append(np.sum(kernel(vee[i + nbnds_excl][vmask])) / len(dEi))
+            dEs.append(np.sum(kernel(self.vee[i + self.nbnds_excl][vmask]) * dEi) / len(dEi) * 1000)
+            wgts.append(np.sum(kernel(self.vee[i + self.nbnds_excl][vmask])) / len(dEi))
             # ! MAX DISTANCE
             dEs_max.append(np.max(kernel(vee_i) * dEi) * 1000)
             wgts_max.append(np.max(kernel(vee_i)))
