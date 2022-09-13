@@ -80,7 +80,10 @@ def show_all_fonts():
     from matplotlib import font_manager as fm
     fpaths = fm.findSystemFonts()
     family_name = set([fm.get_font(i).family_name for i in fpaths])
-    print(sorted(family_name))
+
+    for i, name in enumerate(sorted(family_name)):
+        print('{:25s}'.format(name), end='')
+        if i % 4 == 3: print()
 
 def get_efermi(args, from_file=False) -> float:
     r'''
@@ -88,7 +91,7 @@ def get_efermi(args, from_file=False) -> float:
     
     If `from_file` is False, function will return `args.efermi` (Fermi level from the argument and not `None`) directly.
     '''
-    if not from_file and args.efermi:
+    if not from_file and args.efermi != None:
         efermi = float(args.efermi)
     else:
         # The input args.path is the relative path, converting to absolute path of the directory.

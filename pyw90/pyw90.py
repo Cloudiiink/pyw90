@@ -1,6 +1,5 @@
 import subprocess
 import os
-from os.path import abspath
 import argparse
 
 from lib.w90 import W90
@@ -120,19 +119,20 @@ def cmp(args):
     '''
     if args.show_fonts:
         show_all_fonts()
-        
-    efermi = get_efermi(args)
+        return
+
     if args.config:
         config = Config(yaml_file='auto_w90_input.yaml')
         w90 = W90(config=config, path=args.path)
         kernel = config.kernel
     else:
+        efermi = get_efermi(args)
         w90 = W90(path=args.path, efermi=efermi)
         l = args.kernel.split(',')
         kernel_str, mid, width = l[0], float(l[1]), float(l[2])
         kernel = parse_kernel(kernel_str, mid, width)
     
-    print(f'Reading Data from {args.path}')
+    print(f'Reading Data from {os.path.relpath(args.path)}')
 
     w90.plot_cmp_vasp_w90(args.name, ylim=args.ylim,
                           font=args.fontfamily, size=args.fontsize)
@@ -140,10 +140,10 @@ def cmp(args):
     if not args.no_quality and not args.quiet:
         res = w90.evaluate(kernel=kernel)
         print(f'Final Quality: {res}')
-        w90.show_dEs()
+        w90.show_dEs(update=True, terminal=True)
 
     if not args.no_spread and not args.quiet:
-        w90.show_spread()
+        w90.show_spread(update=True, terminal=True)
 
 def pre(args):
     r'''

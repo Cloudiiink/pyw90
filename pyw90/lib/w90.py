@@ -450,7 +450,6 @@ class W90():
 
         # plt.show()
         plt.savefig(output_figure,  bbox_inches='tight', transparent=True, dpi=300)
-        print(f"Output figure: {output_figure}")
 
     def evaluate(self, mode:str='AbAk', kernel=None) -> float:
         r"""
@@ -598,45 +597,74 @@ class W90():
         dis['dis_win_max']  = self.suggest_win_max(emin)
         return [dis[k] for k in self.config.opt_ini_dis.keys()]
 
-    def show_spread(self):
+    def show_spread(self, update:bool=False, terminal:bool=False):
         r'''
         Display spreading via `loggind.Logger`.
+
+        ### Parameters
+        - `update`: Update `self.dEs` etc when it's `True`. Default is `False`.
+        - `terminal`: Print the result in terminal not via logger.
         '''
+        if update:
+            self.update_bands()
+
+        lines = []
         spread = self.total_spread()
         len_unit_spread = max(spread / 20)
         len_spread = (spread / len_unit_spread).astype(int)
         N2 = (len(spread) + 1)// 2
-        logger.info(f"Spread (Ang^2) in `{self._sys}.wout`:".ljust(80, ' '))
-        logger.info(f"+-----+{'-'*32}++-----+{'-'*32}+")
-        logger.info(f"|   i |{' Spread':32s}||   i |{' Spread':32s}|")
-        logger.info(f"+-----+{'-'*32}++-----+{'-'*32}+")
+        lines.append(f"Spread (Ang^2) in `{self._sys}.wout`:".ljust(80, ' '))
+        lines.append(f"+-----+{'-'*32}++-----+{'-'*32}+")
+        lines.append(f"|   i |{' Spread':32s}||   i |{' Spread':32s}|")
+        lines.append(f"+-----+{'-'*32}++-----+{'-'*32}+")
         for i in range(N2):
             il, ir = i, i + N2
             sl = f'{self._block * len_spread[il]} {spread[il]:.1f}'
             sr = f'{self._block * len_spread[ir]} {spread[ir]:.1f}' if ir < len(spread) else ''
-            logger.info(f'|{il+1:4d} |{sl:<32s}||{ir+1:4d} |{sr:<32s}|')
-        logger.info(f"+-----+{'-'*32}++-----+{'-'*32}+")
+            lines.append(f'|{il+1:4d} |{sl:<32s}||{ir+1:4d} |{sr:<32s}|')
+        lines.append(f"+-----+{'-'*32}++-----+{'-'*32}+")
 
-    def show_dEs(self):
+        for line in lines:
+            if terminal:
+                print(line)
+            else:
+                logger.info(line)
+
+
+    def show_dEs(self, update:bool=False, terminal:bool=False):
         r'''
         Display the maximium and average band difference via `loggind.Logger`.
 
         Notice: The maximuim value of difference has multiplied with kernel factor. It will have some influence when using Gaussian function as kernel function. The average value of difference has removed the kernel factor. And we only counts the value over non-zero k-points with window function.
+
+        ### Parameters
+        - `update`: Update `self.dEs` etc when it's `True`. Default is `False`.
+        - `terminal`: Print the result in terminal not via logger.
         '''
+        if update:
+            self.update_bands()
+
+        lines = []
         dEs     = self.dEs /(self.wgts+1e-6)  # Correct dEs with dividing weight
         dEs_max = self.dEs_max
         len_unit_max = max(dEs_max / 22)
         len_unit_ave = max(dEs     / 22)
         len_dEs_max = (dEs_max / len_unit_max).astype(int)
         len_dEs_ave = (dEs     / len_unit_ave).astype(int)
-        logger.info(f"+-----+{'-'*32}++-----+{'-'*32}+")
-        logger.info(f"|   i |{' MAX DIFF (meV)':32s}||   i |{' AVERAGE DIFF (meV)':32s}|")
-        logger.info(f"+-----+{'-'*32}++-----+{'-'*32}+")
+        lines.append(f"+-----+{'-'*32}++-----+{'-'*32}+")
+        lines.append(f"|   i |{' MAX DIFF (meV)':32s}||   i |{' AVERAGE DIFF (meV)':32s}|")
+        lines.append(f"+-----+{'-'*32}++-----+{'-'*32}+")
         for i in range(self.nwann):
             max_str_i = f'{self._block * len_dEs_max[i]} {dEs_max[i]:.2f}'
             ave_str_i = f'{self._block * len_dEs_ave[i]} {dEs[i]:.2f}'
-            logger.info(f'|{i+1:4d} |{max_str_i:<32s}||{i+1:4d} |{ave_str_i:<32s}|')
-        logger.info(f"+-----+{'-'*32}++-----+{'-'*32}+")
+            lines.append(f'|{i+1:4d} |{max_str_i:<32s}||{i+1:4d} |{ave_str_i:<32s}|')
+        lines.append(f"+-----+{'-'*32}++-----+{'-'*32}+")
+
+        for line in lines:
+            if terminal:
+                print(line)
+            else:
+                logger.info(line)
 
     def _parse_dat(self, datfile:str) -> Tuple[ArrayLike, ArrayLike]:
         r'''
