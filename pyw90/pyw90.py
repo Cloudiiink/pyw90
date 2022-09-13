@@ -3,6 +3,7 @@ import os
 import argparse
 
 from lib.w90 import W90
+from lib.config import Config
 from utility.utility import get_efermi, show_all_fonts, parse_kernel
 from pre_w90_tool import main_features
 
@@ -19,11 +20,12 @@ def get_args():
                              help='The path of working dir. Please use relative path. Default: .')
     parser_auto.set_defaults(func=auto)
 
-    # TODO Add argument for reading from `auto_w90_input.yaml` directly.
     # compare VASP & Wannier90 result
     parser_cmp = subparsers.add_parser('cmp', help='(Comparison) Show difference between VASP bands and Wannier90 bands via plotting and report. `bnd.dat` for VASP band data in `p4vasp` format and `wannier90_band.dat`, `wannier90_band.labelinfo.dat`, and `wannier90.wout` are required for plotting and analysis.')
     parser_cmp.add_argument('name',
                             help='name of system')
+    parser_cmp.add_argument('--config', action='store_true', default=False,
+                            help='Read input from config file `auto_w90_input.yaml` directly. Default: False')
     parser_cmp.add_argument('--path', default='.',
                             help='The path of working dir. Please use relative path. Default: .')
     parser_cmp.add_argument('--efermi', default=None, 
@@ -31,9 +33,9 @@ def get_args():
     parser_cmp.add_argument('--vasp', default='bnd.dat',
                             help="location of VASP band file in `p4vasp` format. Default: bnd.dat")
     parser_cmp.add_argument('--ylim', default=None, nargs=2, type=float,
-                            help="Energy bound for plot. The Fermi level has been deducted. Default: [E_w90.min - 1, E_w90.max + 1]")
-    parser_cmp.add_argument('--kernel', default='unit,0,3',
-                            help="kernel function for evaluating diff with formatted input: type, middle, width and the Fermi level has been deducted.. There are two type of kernel function: `unit` and `gaussian`. Defalut: unit,0,3")
+                            help="Energy bound for plot. Since the Fermi level has been shift to 0 during the plotting, please mind your input. Default: [E_w90.min - 1, E_w90.max + 1]")
+    parser_cmp.add_argument('--kernel', default='unit,0,1',
+                            help="kernel function for evaluating diff with formatted input: type, middle, width and **the Fermi level is not subtracted from eigenvalues**. There are two type of kernel function: `unit` and `gaussian`. Defalut: unit,0,1")
     parser_cmp.add_argument('--show-fonts', default=False, action="store_true",
                             help="Show all availabel font families can be used in `rcParams`")
     parser_cmp.add_argument('--fontfamily', default='Open Sans',
@@ -69,6 +71,8 @@ def get_args():
     # show distribution of eigenvalues
     parser_eig = subparsers.add_parser('eig', help='Show distribution of eigenvalues.')
     parser_eig.add_argument('mode', help='Mode: report, plot, count, suggest')
+    parser_cmp.add_argument('--config', action='store_true', default=False,
+                            help='Read input from config file `auto_w90_input.yaml` directly. Default: False')
     parser_eig.add_argument('--path', default='.',
                             help='The path of working dir. Please use relative path. Default: .')
     parser_eig.add_argument('-i', dest='eig', action='store', type=str,
@@ -112,7 +116,15 @@ def cmp(args):
     (Comparison) Show difference between VASP bands and Wannier90 bands via plotting and report.
     '''
     efermi = get_efermi(args)
-    w90 = W90(path=args.path, efermi=efermi)
+    if args.config:
+        config = Config(yaml_file='auto_w90_input.yaml')
+        w90 = W90(config=config, path=args.path)
+        kernel = config.kernel
+    else:
+        w90 = W90(path=args.path, efermi=efermi)
+        l = args.kernel.split(',')
+        kernel_str, mid, width = l[0], float(l[1]), float(l[2])
+        kernel = parse_kernel(kernel_str, mid, width)
     
     print(f'Reading Data from {args.path}')
 
@@ -120,9 +132,6 @@ def cmp(args):
                           font=args.fontfamily, size=args.fontsize)
 
     if not args.no_quality and not args.quiet:
-        l = args.kernel.split(',')
-        kernel_str, mid, width = l[0], float(l[1]), float(l[2])
-        kernel = parse_kernel(kernel_str, mid, width)
         res = w90.evaluate(kernel=kernel)
         print(f'Final Quality: {res}')
         w90.show_dEs()
@@ -143,12 +152,16 @@ def eig(args):
     r'''
     Show distribution of eigenvalues.
     '''
-    w90 = W90(eig=args.eig,
-              path=args.path,
-              efermi=get_efermi(args), 
-              nbnds_excl=args.nbnds_excl, 
-              nwann=args.nwann, 
-              ndeg=args.ndeg)
+    if args.config:
+        config = Config(yaml_file='auto_w90_input.yaml')
+        w90 = W90(config=config, eig=args.eig, path=args.path, nbnds_excl=args.nbnds_excl)
+    else:
+        w90 = W90(eig=args.eig,
+                  path=args.path,
+                  efermi=get_efermi(args), 
+                  nbnds_excl=args.nbnds_excl, 
+                  nwann=args.nwann, 
+                  ndeg=args.ndeg)
 
     if args.mode[0].lower() == 'p': # plot
         w90.plot_eigenval(erange=args.erange, separate=args.separate)
@@ -163,7 +176,7 @@ def eig(args):
         df = w90.get_dis_froz_df(args.erange, eps=4e-3)
         if len(df) > 0:
             print(df)
-        # dis_windows require energy window containing states larger than number of target WFs. This will also generate some constraint for dis_windows
+        # dis_windows require energy window containing states larger than number of target WFs. This will also generate some constraints for dis_windows
         dis_win_max = w90.suggest_win_max(args.erange[0])
         print(f'\nLowest `dis_win_max` for {args.erange[0]}: {dis_win_max}')
 

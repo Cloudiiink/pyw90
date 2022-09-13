@@ -37,7 +37,7 @@ class W90():
 
         self._sys   = self._win[:-4]
         self._fname = self._sys + '.eig'
-        self._dname = path    # the directory containing the input file
+        self._dname = os.path.join(os.getcwd(), path)    # the directory containing the input file
         self.nbnds_excl = nbnds_excl
         self.ndeg   = ndeg      # denegeracy of bands, actually need to set 2 only meets Kramers degeneracy.
         self.eps    = 4.0e-3     # tolerance for generate `dis_windows`
@@ -169,7 +169,7 @@ class W90():
         ax.set(ylabel='Energy / eV')
         ax.grid()
 
-        plt.savefig(f'{self._dname}/{savefig}', dpi=200, bbox_inches='tight', transparent=True)
+        plt.savefig(os.path.join(self._dname, savefig), dpi=200, bbox_inches='tight', transparent=True)
 
     def report_eigenval(self, erange:Tuple[float,float]=None, separate:bool=False):
         r'''

@@ -18,14 +18,15 @@ class Config():
         Parse input parameters from `.yaml` file. If there is no specific `.yaml` file given, class will treat the first `.yaml` file as config file.
         '''
         if not yaml_file:
-            yaml_file_list = [f for f in os.listdir() if f.endswith('.yaml')]
+            yaml_file_list = [f for f in os.listdir(os.getcwd()) if f.endswith('.yaml')]
             if len(yaml_file_list) != 0:
                 yaml_file = yaml_file_list[0]
             else:
                 raise ValueError('There is no `.yaml` file in this folder!')
-        with open(yaml_file,'r', encoding='utf-8') as f:
+        with open(os.path.join(os.getcwd(), yaml_file),'r', encoding='utf-8') as f:
             data = yaml.load(f, Loader=yaml.FullLoader)
         
+        self._dname   = os.getcwd()
         self.win      = data['winfile']
         self.run      = data['runfile']
         self.vasp_bnd = data['vasp_band_file']

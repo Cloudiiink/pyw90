@@ -91,7 +91,8 @@ def get_efermi(args, direct=False) -> float:
     if not direct and args.efermi:
         efermi = float(args.efermi)
     else:
-        vasprun = os.path.join(args.path, 'vasprun.xml')
+        # The input args.path is the relative path, converting to absolute path of the directory.
+        vasprun = os.path.join(os.getcwd(), args.path, 'vasprun.xml')
         efermi_str = os.popen(f'grep fermi {vasprun}').read().strip()
         m = re.match('.+ ((\-|\+)?\d+(\.\d+)?) .+', efermi_str)
         efermi = float(m.groups()[0])

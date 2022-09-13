@@ -264,14 +264,14 @@ def select_str2list(s: str, orb_names: list(str)=['s', 'py', 'pz', 'px', 'dxy', 
                 res.append(f'{spec}_{p}_{orb_names[o]}')
     return set(res)
 
-def kpath(kpoints: str, path: str='.', delimeter: str=None):
+def kpath(kpoints: str, delimeter: str=None):
     r"""
     Generate `Wannier90` `Kpoint_Path` bolck from `KPOINTS`
 
     **Note**: `delimeter` is used to identify kpoint, such as `0.0  0.0  0.0  ! Gamma`.
     """
     delimeter = delimeter if delimeter else '!'
-    with open(os.path.join(path, kpoints), 'r') as f:
+    with open(kpoints, 'r') as f:
         lines = f.readlines()
     lines    = [l.strip() for l in lines if len(l.strip())!=0 ][4:]
     labels   = [s.split(delimeter)[-1].strip() for s in lines]
@@ -298,7 +298,7 @@ def export_vasp_band(path: str):
             f.writelines(lines)
 
     print(f"Generate `p4vasp` format bnd.dat file from {os.path.join(path, 'vasprun.xml')}")
-    run = Vasprun(f'{path}/vasprun.xml')
+    run = Vasprun(os.path.join(path, 'vasprun.xml'))
     bands = run.get_band_structure(os.path.join(path, 'KPOINTS'), line_mode=True)
     nspin = len(bands.bands.keys())
     kk = bands.distance
@@ -380,12 +380,13 @@ def main_features(args):
     r'''
     Main features integrated
     '''
+    path = os.path.join(os.getcwd(), args.path)
     if args.mode[0].lower() == 'k': # generate kpath
-        if 'KPOINTS' in os.listdir(args.path):
-            print(f'Generate Kpoint_Path from {args.path}/KPOINTS:\n')
-            kpath(f'{args.path}/KPOINTS', delimeter=args.extra)
+        if 'KPOINTS' in os.listdir(path):
+            print(f'Generate Kpoint_Path from\n    {os.join(path, "KPOINTS")}\n')
+            kpath(os.join(path, "KPOINTS"), delimeter=args.extra)
         else:
-            print(f'There is no KPOINTS file in {args.path}. Please check your input!')
+            print(f'There is no KPOINTS file in\n   {path}\nPlease check your input!')
     elif args.mode[0].lower() == 't':   # print W90 parameter template
         if len(args.extra) == 0:
             template('basic')
@@ -394,14 +395,14 @@ def main_features(args):
         else:
             template(args.extra)
     elif args.mode[0].lower() == 'b':   # generate p4vasp-like band data file
-        export_vasp_band(args.path)
+        export_vasp_band(path)
     elif args.mode[0].lower() == 'd':   # DOS Analysis
         left, right = args.erange
         left, right = (right, left) if right < left else (left, right)
         lb = args.lb
 
-        vasprun = Vasprun(os.path.join(args.path, "vasprun.xml"))
-        print(f"Reading vasprun.xml file from\n    `{os.path.join(args.path, 'vasprun.xml')}` \nfor DOS analysis...")
+        vasprun = Vasprun(os.path.join(path, "vasprun.xml"))
+        print(f"Reading vasprun.xml file from\n    `{os.path.join(path, 'vasprun.xml')}` \nfor DOS analysis...")
         dos_data_total = vasprun.complete_dos       # get dos data
         structure = dos_data_total.structure
         dos_df = gen_dos_df(dos_data_total, left, right)
@@ -420,7 +421,7 @@ def main_features(args):
 
             if args.plot:
                 selected = select_str2list(args.extra)
-                plot_dos_dis(dos_df, selected=selected, filename=os.path.join(args.path, 'dos_analysis.png'))
+                plot_dos_dis(dos_df, selected=selected, filename=os.path.join(path, 'dos_analysis.png'))
 
         else:
             selected = select_str2list(args.extra)
@@ -429,8 +430,8 @@ def main_features(args):
             from lib.w90 import W90
             from utility.utility import get_efermi
 
-            w90 = W90(eig=os.path.join(args.path, 'EIGENVAL'),
-                      path=args.path,
+            w90 = W90(eig=os.path.join(path, 'EIGENVAL'),
+                      path=path,
                       efermi=get_efermi(args, direct=True),
                       nbnds_excl=0,
                       nwann=nwann,
@@ -457,7 +458,7 @@ def main_features(args):
 
             if args.plot:
                 plot_dos_dis(dos_df, selected=selected,
-                             filename=os.path.join(args.path, 'dos_analysis_selected.png'))
+                             filename=os.path.join(path, 'dos_analysis_selected.png'))
 
 if __name__ == "__main__":
     args = get_args()
