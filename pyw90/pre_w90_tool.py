@@ -108,8 +108,8 @@ def plot_dos_dis(dos_df: pd.DataFrame, lb: float=1, selected: set=set(),
     plt.grid(axis='x')
 
     # save figure in local folder not in source folder
-    plt.savefig(savefig,
-                dpi=200, bbox_inches='tight', transparent=True)
+    plt.savefig(savefig, dpi=200, bbox_inches='tight')
+    # plt.savefig(savefig, dpi=200, bbox_inches='tight', transparent=True)
 
 def dos_analysis_df(dos_df: pd.DataFrame, lb: float=0.1) -> Tuple[int, pd.DataFrame]:
     r"""

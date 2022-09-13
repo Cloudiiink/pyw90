@@ -183,7 +183,8 @@ class W90():
         ax.set_axisbelow(True)
         ax.grid()
 
-        plt.savefig(savefig, dpi=200, bbox_inches='tight', transparent=True)
+        plt.savefig(savefig, dpi=200, bbox_inches='tight')
+        # plt.savefig(savefig, dpi=200, bbox_inches='tight', transparent=True)
 
     def report_eigenval(self, erange:Tuple[float,float]=None, separate:bool=False):
         r'''
@@ -449,7 +450,8 @@ class W90():
                   prop={'size': 14})
 
         # plt.show()
-        plt.savefig(output_figure,  bbox_inches='tight', transparent=True, dpi=300)
+        # plt.savefig(output_figure,  bbox_inches='tight', transparent=True, dpi=300)
+        plt.savefig(output_figure,  bbox_inches='tight', dpi=300)
 
     def evaluate(self, mode:str='AbAk', kernel=None) -> float:
         r"""
