@@ -1,8 +1,10 @@
 import subprocess
+import signal
 import os
 import argparse
 
 from lib.w90 import W90
+from lib.job import Job
 from lib.config import Config
 from utility.utility import get_efermi, show_all_fonts, parse_kernel
 from pre_w90_tool import main_features
@@ -16,8 +18,11 @@ def get_args():
 
     # auto-wannier90-fit
     parser_auto = subparsers.add_parser('auto', help='(Auto Wannier90 Fit) Using minimize method to choose the most suitable energy windows.')
+    parser_auto.add_argument('mode', help='Mode: run, term(inate)')
     parser_auto.add_argument('--path', default='.',
                              help='The path of working dir. Please use relative path. Default: .')
+    parser_auto.add_argument('--pid', default=None, type=int,
+                             help='PID to terminate.')
     parser_auto.set_defaults(func=auto)
 
     # compare VASP & Wannier90 result
@@ -106,12 +111,33 @@ def auto(args):
     r'''
     (Auto Wannier90 Fit) Using minimize method to choose the most suitable energy windows.
     '''
-    log  = os.path.join(args.path, 'auto_w90_output.txt')
-    subprocess.Popen(['python', 'auto_w90_fit.py'],
-                     stdin  = subprocess.DEVNULL,
-                     stdout = open(log, 'w'),
-                     stderr = open(log, 'w'),
-                     start_new_session=True)
+    if args.mode.lower()[0] == 'r':  # run
+        log  = os.path.join(args.path, 'auto_w90_output.txt')
+        p = subprocess.Popen(['python', 'auto_w90_fit.py'],
+                               stdin  = subprocess.DEVNULL,
+                               stdout = open(log, 'w'),
+                               stderr = open(log, 'w'),
+                               start_new_session=True)
+        print(f'Auto-W90-Fit run with PID: {p.pid}')
+    elif args.mode.lower()[0] == 't':   # terminate
+        print(f'Kill the job with PID {args.pid} as listed')
+        ps = os.popen('ps aux | grep auto_w90_fit').read()
+        print(ps)
+        all_pid = [int(s.split()[1]) for s in ps.strip().split('\n')]
+        print('Input Y(es) / N(o) (Or input the pid listed above you want to terminate): ')
+        usr_input = input()
+        if usr_input.lower()[0] == 'y':
+            os.killpg(os.getpgid(args.pid), signal.SIGTERM)  # Send the signal to all the process groups
+            config = Config(yaml_file='auto_w90_input.yaml')
+            jobs = Job(config)
+            jobs.cancel()
+        elif eval(usr_input) in all_pid:
+            os.killpg(os.getpgid(eval(usr_input)), signal.SIGTERM)  # Send the signal to all the process groups
+            config = Config(yaml_file='auto_w90_input.yaml')
+            jobs = Job(config)
+            jobs.cancel()
+        else:
+            return
 
 def cmp(args):
     r'''

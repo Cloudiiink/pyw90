@@ -56,3 +56,17 @@ class Job():
             os.system('sbatch {0}'.format(self.run))
         else:
             raise ValueError('There is already {0} *{1}* task!'.format(num_jobs, self.job_name))
+
+    def cancel(self):
+        r"""
+        Cancel all the job with name `self.job_name`
+        """
+        df = self.get_jobs()
+        print(f'Cancel all the jobs as listed')
+        print(df)
+        print('Y(es) / N(o): ')
+        if input().lower()[0] == 'y':
+            for i in df['JOBID']:
+                os.popen(f"scancel {i}")
+        else:
+            return
