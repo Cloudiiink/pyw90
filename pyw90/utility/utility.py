@@ -82,13 +82,13 @@ def show_all_fonts():
     family_name = set([fm.get_font(i).family_name for i in fpaths])
     print(sorted(family_name))
 
-def get_efermi(args, direct=False) -> float:
+def get_efermi(args, from_file=False) -> float:
     r'''
     Return the Fermi level from `vasprun.xml` in `args.path` folder.
     
-    If `direct` is True, function will return `args.efermi` (Fermi level from the argument) directly.
+    If `from_file` is False, function will return `args.efermi` (Fermi level from the argument and not `None`) directly.
     '''
-    if not direct and args.efermi:
+    if not from_file and args.efermi:
         efermi = float(args.efermi)
     else:
         # The input args.path is the relative path, converting to absolute path of the directory.

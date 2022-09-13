@@ -4,6 +4,7 @@ from numpy.typing import ArrayLike
 import pandas as pd
 import argparse
 import os
+from os.path import abspath, relpath
 import warnings
 from typing import Tuple
 
@@ -12,6 +13,8 @@ from pymatgen.io.vasp.outputs import Vasprun
 from pymatgen.electronic_structure.core import Orbital, Spin
 from pymatgen.electronic_structure.dos import CompleteDos
 from pymatgen.core import structure
+
+from utility.utility import get_efermi
 
 # Calculate the percentage of given sites and given orbitals inside the energy interval
 # from scipy.interpolate import interp1d
@@ -77,7 +80,7 @@ def gen_dos_df(dos_data_total: CompleteDos, left: float, right: float,
 
 def plot_dos_dis(dos_df: pd.DataFrame, lb: float=1, selected: set=set(),
                  colors: Tuple[str, str]=['brown', 'orange'],
-                 path: str='.', filename: str='dos_analysis.png'):
+                 savefig: str='dos_analysis.png'):
     r"""
     Bar plot of DOS distribution.
 
@@ -86,9 +89,10 @@ def plot_dos_dis(dos_df: pd.DataFrame, lb: float=1, selected: set=set(),
     - `lb`: Percentage of lower bound. Since there are too many data to show, here we only present entries that the contribution is greater than `lb`%.
     - `selected`: Selected entries to show (in key_string format: {species}_{structure id}_{orb_name} )
     - `colors`: Plot with selected orbitals in the first color and not selected orbitals in the last color. The default value is ['brown', 'orange'].
-    - `path` and `filename`: Saved figure.
+    - `savefig`: Saved figure.
     """
     threshold = lb / 100 * dos_df['dos'].max()
+
     df = dos_df[dos_df['dos'] > threshold]
     df = df.sort_values(by='dos', ascending=False)
     # color = [colors[0] if row['key_string'] in selected else colors[-1]
@@ -98,9 +102,13 @@ def plot_dos_dis(dos_df: pd.DataFrame, lb: float=1, selected: set=set(),
     print(f'{len(selected)} orbitals selected')
     mask = (np.array(color) == colors[0])
     print(f'Plot {len(df)} orbitals with {sum(mask)} selected.')
-    df.plot.barh(x="key_string", y="dos", color=color) #, figsize=(8, 20))
+    
+    ax = df.plot.barh(x="key_string", y="dos", color=color) #, figsize=(8, 20))
+    ax.set_axisbelow(True)
     plt.grid(axis='x')
-    plt.savefig(os.path.join(path, filename),
+
+    # save figure in local folder not in source folder
+    plt.savefig(savefig,
                 dpi=200, bbox_inches='tight', transparent=True)
 
 def dos_analysis_df(dos_df: pd.DataFrame, lb: float=0.1) -> Tuple[int, pd.DataFrame]:
@@ -294,19 +302,22 @@ def export_vasp_band(path: str):
         with open(filename, 'w') as f:
             f.writelines(lines)
 
-    print(f"Generate `p4vasp` format bnd.dat file from {os.path.join(path, 'vasprun.xml')}")
+    print(f"Generate `p4vasp` format bnd.dat file from {abspath(os.path.join(path, 'vasprun.xml'))}")
     run = Vasprun(os.path.join(path, 'vasprun.xml'))
     bands = run.get_band_structure(os.path.join(path, 'KPOINTS'), line_mode=True)
     nspin = len(bands.bands.keys())
     kk = bands.distance
     if nspin == 1:
-        print('export band data to `bnd.dat`.')
+        print(f'export band data to `bnd.dat` in folder\n    {abspath(path)}')
         export2dat(kk, bands.bands[Spin.up], os.path.join(path, 'bnd.dat'))
+        os.popen(f"ln -s {relpath(os.path.join(path, 'bnd.dat'))} .")
     elif nspin == 2:
         print('NSPIN = 2')
-        print('export band data to `bnd_up.dat` and `bnd_down.dat` separatly.')
+        print(f'export band data to `bnd_up.dat` and `bnd_down.dat` separatly in folder\n    {abspath(path)}')
         export2dat(kk, bands.bands[Spin.up], os.path.join(path, 'bnd_up.dat'))
         export2dat(kk, bands.bands[Spin.down], os.path.join(path, 'bnd_down.dat'))
+        os.popen(f"ln -s {relpath(os.path.join(path, 'bnd_up.dat'))} .")
+        os.popen(f"ln -s {relpath(os.path.join(path, 'bnd_down.dat'))} .")
  
 def template(flag:str):
     r"""
@@ -360,8 +371,10 @@ def get_args():
     parser.add_argument('mode', help='Mode: kpath, band, template, dos')
     parser.add_argument('--path', default='.',
                         help='Default: .')
-    parser.add_argument('--no-soc', action='store_true', default=False,
-                        help='with SOC or not. Default: False')
+    parser.add_argument('--sub-fermi', action='store_true', default=False,
+                        help="Flag for whether the input `erange` has subtract the Fermi energy or not. Default: False")
+    parser.add_argument('--deg', action='store', type=int, default=1,
+                        help='Degeneracy of bands. Default: 1')
     parser.add_argument('--lb', action='store', type=float, default=0.1,
                         help='Lower bound for selected orbital / max single orbital. default: 0.1')
     parser.add_argument('-e', dest='erange', action='store', type=float,
@@ -380,8 +393,8 @@ def main_features(args):
     path = os.path.join(os.getcwd(), args.path)
     if args.mode[0].lower() == 'k': # generate kpath
         if 'KPOINTS' in os.listdir(path):
-            print(f'Generate Kpoint_Path from\n    {os.join(path, "KPOINTS")}\n')
-            kpath(os.join(path, "KPOINTS"), delimeter=args.extra)
+            print(f'Generate Kpoint_Path from\n    {abspath(os.path.join(path, "KPOINTS"))}\n')
+            kpath(os.path.join(path, "KPOINTS"), delimeter=args.extra)
         else:
             print(f'There is no KPOINTS file in\n   {path}\nPlease check your input!')
     elif args.mode[0].lower() == 't':   # print W90 parameter template
@@ -394,21 +407,30 @@ def main_features(args):
     elif args.mode[0].lower() == 'b':   # generate p4vasp-like band data file
         export_vasp_band(path)
     elif args.mode[0].lower() == 'd':   # DOS Analysis
-        left, right = args.erange
-        left, right = (right, left) if right < left else (left, right)
+        efermi = get_efermi(args, from_file=True)
         lb = args.lb
 
         vasprun = Vasprun(os.path.join(path, "vasprun.xml"))
-        print(f"Reading vasprun.xml file from\n    `{os.path.join(path, 'vasprun.xml')}` \nfor DOS analysis...")
+        print(f"\nReading vasprun.xml file from\n    `{abspath(os.path.join(path, 'vasprun.xml'))}` \n" \
+               "for DOS analysis...")
+        print(f"\nFermi level: {efermi}")
+
+        left, right = min(args.erange), max(args.erange)
+        if args.sub_fermi:
+            left, right = left + efermi, right + efermi
+            print(f"\nCalculated DOS Energy Range: {left}, {right}")
+        else:
+            print(f"\nCalculated DOS Energy Range: {left}, {right}")
+        erange = left, right
         dos_data_total = vasprun.complete_dos       # get dos data
         structure = dos_data_total.structure
         dos_df = gen_dos_df(dos_data_total, left, right)
-        print(f"\nCalculated DOS Energy Range: {left}, {right}")
-
+        
         if len(args.extra) == 0:
-            print(dos_df)
+            print()
+            print(dos_df.sort_values('dos', ascending=False))
             norb, simple_res_df = dos_analysis_df(dos_df, lb=lb)
-            nwann = norb if args.no_soc else 2 * norb
+            nwann = int(norb * args.deg)
             print(f"\nNumber of Selected Orbitals: {norb}")
             print(f"\nNumber of Selected WFs: {nwann}")
             print("\nSelected Orbitals: ")
@@ -418,23 +440,22 @@ def main_features(args):
 
             if args.plot:
                 selected = select_str2list(args.extra)
-                plot_dos_dis(dos_df, selected=selected, filename=os.path.join(path, 'dos_analysis.png'))
+                plot_dos_dis(dos_df, selected=selected, savefig=os.path.join(os.getcwd(), 'dos_analysis.png'))
 
         else:
             selected = select_str2list(args.extra)
-            nwann = len(selected) if args.no_soc else 2 * len(selected)
+            nwann = int(args.deg * len(selected))
 
             from lib.w90 import W90
-            from utility.utility import get_efermi
 
-            w90 = W90(eig=os.path.join(path, 'EIGENVAL'),
+            w90 = W90(eig='EIGENVAL',
                       path=path,
-                      efermi=get_efermi(args, direct=True),
+                      efermi=efermi, # get_efermi(args, from_file=True),
                       nbnds_excl=0,
                       nwann=nwann,
                       ndeg=1)
 
-            dis_froz_df = w90.get_dis_froz_df(args.erange, eps=4e-3)
+            dis_froz_df = w90.get_dis_froz_df(erange)
             dis_tdos_l, dis_pdos_l, percent_l = [], [], []
             for fmin, fmax in zip(dis_froz_df['dis_froz_min'], dis_froz_df['dis_froz_max']):
                 dis_pdos = dos_given_selected(dos_data_total, (fmin, fmax), selected)
@@ -448,14 +469,19 @@ def main_features(args):
             dis_froz_dos_df = dis_froz_df.assign(pdos=dis_pdos_l, tdos=dis_tdos_l, percent=percent_l)
             dis_froz_dos_df = dis_froz_dos_df.sort_values('percent', ascending=False)
             N = len(dis_froz_dos_df)
+            print()
             print(dis_froz_dos_df)
 
-            dis_win_max = w90.suggest_win_max(args.erange[0])
-            print(f'\nLowest `dis_win_max` for {args.erange[0]}: {dis_win_max}')
+            dis_win_max = w90.suggest_win_max(erange[0])
+            print(f'\nLowest `dis_win_max` for {erange[0]}: {dis_win_max}')
 
             if args.plot:
+                # print(f'Use best dis frozen window in above table to regenerate dos_df to plot ...')
+                # left  = dis_froz_dos_df['dis_froz_min'][0]
+                # right = dis_froz_dos_df['dis_froz_max'][0]
+                dos_df = gen_dos_df(dos_data_total, left, right)
                 plot_dos_dis(dos_df, selected=selected,
-                             filename=os.path.join(path, 'dos_analysis_selected.png'))
+                             savefig=os.path.join(os.getcwd(), 'dos_analysis_selected.png'))
 
 if __name__ == "__main__":
     args = get_args()

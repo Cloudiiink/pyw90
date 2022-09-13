@@ -1,5 +1,6 @@
 import subprocess
 import os
+from os.path import abspath
 import argparse
 
 from lib.w90 import W90
@@ -55,10 +56,12 @@ def get_args():
     parser_pre.add_argument('mode', help='Mode: kpath, band, template, dos')
     parser_pre.add_argument('--path', default='.',
                             help='The path of working dir. Please use relative path. Default: .')
-    parser_pre.add_argument('--no-soc', action='store_true', default=False,
-                            help='with SOC or not. Default: False')
-    parser_pre.add_argument('--pick', action='store', type=float, default=0.1,
-                            help='Minimum value of selected orbital / max single orbital. default: 0.1')
+    parser_pre.add_argument('--deg', action='store', type=int, default=1,
+                            help='Degeneracy of bands. Default: 1')
+    parser_pre.add_argument('--sub-fermi', action='store_true', default=False,
+                            help="Flag for whether the input `erange` has subtract the Fermi energy or not. Default: False")
+    parser_pre.add_argument('--lb', action='store', type=float, default=0.1,
+                            help='Lower bound for selected orbital / max single orbital. default: 0.1')
     parser_pre.add_argument('-e', dest='erange', action='store', type=float,
                             default=None, nargs=2,
                             help='Energy range.')
@@ -87,7 +90,7 @@ def get_args():
     parser_eig.add_argument('-n', dest='nbnds_excl', action='store', type=int,
                             default=0,
                             help='Number of bands excluded below the bands from `Wannier90`.')
-    parser_eig.add_argument('-d', dest='ndeg', action='store', type=int,
+    parser_eig.add_argument('--deg', dest='ndeg', action='store', type=int,
                             default=1,
                             help='Number of degeneracy. Default: 1')
     parser_eig.add_argument('-e', dest='erange', action='store', type=float,
@@ -115,6 +118,9 @@ def cmp(args):
     r'''
     (Comparison) Show difference between VASP bands and Wannier90 bands via plotting and report.
     '''
+    if args.show_fonts:
+        show_all_fonts()
+        
     efermi = get_efermi(args)
     if args.config:
         config = Config(yaml_file='auto_w90_input.yaml')
@@ -139,9 +145,6 @@ def cmp(args):
     if not args.no_spread and not args.quiet:
         w90.show_spread()
 
-    if args.show_fonts:
-        show_all_fonts()
-
 def pre(args):
     r'''
     (Pre)-analysis before `Wannier90` Interpolation.
@@ -164,7 +167,8 @@ def eig(args):
                   ndeg=args.ndeg)
 
     if args.mode[0].lower() == 'p': # plot
-        w90.plot_eigenval(erange=args.erange, separate=args.separate)
+        w90.plot_eigenval(erange=args.erange, separate=args.separate,
+                          savefig=os.path.join(os.getcwd(), 'eigenval_dis.png'))
     elif args.mode[0].lower() == 'r': # report
         w90.report_eigenval(erange=args.erange, separate=args.separate)
     elif args.mode[0].lower() == 'c': # count

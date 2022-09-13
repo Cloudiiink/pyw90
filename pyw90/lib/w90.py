@@ -22,7 +22,7 @@ class W90():
         Init
         
         ### Parameters
-        - `path`: path of the working folder.
+        - `path`: relative path of the working folder.
         - `nbnds_excl`: Number of bands which is not including below the lowest tight-binding model energy band (It doesn't mean the absolute value of lowest tight-bingding model energy band is higher than the excluded band from VASP ). The concept is similar to `exclued_bands` block in `.win` input for `Wannier90` to generate the overlap and projection of wave functions such as `.mmn` file.
         - `ndeg`: Degeneracy of bands. Only used in calcution of number Wannier functions from number of projections, i.e. #WFs = ndeg * #projs
         '''
@@ -37,8 +37,8 @@ class W90():
             self.nwann  = nwann
 
         self._sys   = self._win[:-4]
-        self._fname = self._sys + '.eig' if eig == None else eig
-        self._dname = os.path.join(os.getcwd(), path)    # the directory containing the input file
+        self.eig = self._sys + '.eig' if eig == None else eig
+        self.path = os.path.abspath(path)     # the directory containing the input file
         self.nbnds_excl = nbnds_excl
         self.ndeg   = ndeg      # denegeracy of bands, actually need to set 2 only meets Kramers degeneracy.
         self.eps    = 4.0e-3     # tolerance for generate `dis_windows`
@@ -51,17 +51,17 @@ class W90():
         r'''
         Read band energies from VASP EIGENVAL file or `self._sys.eig` file.
         '''
-        if self._fname[-3:] == 'eig':
+        if self.eig[-3:] == 'eig':
             self.nspin = 1
             self.nelect = None
-            data = np.loadtxt(f'{self._dname}/{self._fname}')
+            data = np.loadtxt(os.path.join(self.path, self.eig))
             self.ir_kpath = None
             self.ir_kptwt = None
             self.ir_nkpts = int(data[:, 1].max())
             self.nbnds = int(data[:, 0].max())
             self.ir_ebands = data[:, 2].reshape((self.ir_nkpts, 1, -1)).swapaxes(0, 1)
         else:
-            with open(f'{self._dname}/{self._fname}') as inp:
+            with open(os.path.join(self.path, self.eig)) as inp:
                 # read all the data.
                 dat = np.array([line.strip() for line in inp if line.strip()])
 
@@ -99,7 +99,7 @@ class W90():
         r'''
         Read parameters from `self._win` file.
         '''
-        with open(f'{self._dname}/{self._win}') as f:
+        with open(os.path.join(self.path, self._win)) as f:
             dat = [line.strip() for line in f if line.strip()]
 
         for l in dat:
@@ -183,8 +183,7 @@ class W90():
         ax.set_axisbelow(True)
         ax.grid()
 
-        # save figure in local folder not in source folder
-        plt.savefig(os.path.join(os.getcwd(), savefig), dpi=200, bbox_inches='tight', transparent=True)
+        plt.savefig(savefig, dpi=200, bbox_inches='tight', transparent=True)
 
     def report_eigenval(self, erange:Tuple[float,float]=None, separate:bool=False):
         r'''
@@ -316,7 +315,7 @@ class W90():
 
         if self.nwann <= 0:
             print(f'Please input vaild number of WF, now is {self.nwann}.')
-            return pd.DataFrame(columns=['dis_froz_min', 'dis_froz_max', 'N_at_most'])
+            return pd.DataFrame(columns=['dis_froz_min', 'dis_froz_max', 'N'])
 
         elif dN > 0:
             print('Suggest dis_froz_min & dis_froz_max as following:')
@@ -334,7 +333,7 @@ class W90():
             # number of missing states between `emin` and lowest `dis_froz_min`
             num_missing = self.count_states_most((emin, min(froz_min_list)))
             df = pd.DataFrame(zip(froz_min_list, froz_max_list, N),
-                                 columns=['dis_froz_min', 'dis_froz_max', 'N_at_most'])
+                                 columns=['dis_froz_min', 'dis_froz_max', 'N'])
 
             if num_missing > 0:
                 print(f'\nWANRING: There are {num_missing} states between given `emin`: {emin} and lowest `dis_froz_min`: {min(froz_min_list)}. \n\nPlease carefully treat the suggestion of dis_froz_min / dis_froz_max and check energy range of each bands again. This situation usually happens in no-SOC system with many denegeracy point. But we still want to give you some useful energy window information with states less than number of WFs.\n')
@@ -342,18 +341,18 @@ class W90():
                     emax_i = self.suggest_froz_max(emin, nwann=i)
                     new = pd.DataFrame({"dis_froz_min" : emin,
                                         "dis_froz_max" : emax_i,
-                                        "N_at_most"    : self.count_states_most((emin, emax_i))}, index=[1])
+                                        "N"            : self.count_states_most((emin, emax_i))}, index=[1])
                     df = pd.concat([df, new], ignore_index=True)
 
             return df.sort_values('dis_froz_min')
         else:
-            return pd.DataFrame(columns=['dis_froz_min', 'dis_froz_max', 'N_at_most'])
+            return pd.DataFrame(columns=['dis_froz_min', 'dis_froz_max', 'N'])
 
     def edit_win(self, dis_dict:Dict[str,float]):
         r'''
         Edit `self._sys.win` file with input dis windows from `dis_dict`.
         '''
-        with open(f'{self._dname}/{self._win}', 'r+') as file:
+        with open(os.path.join(self.path, self._win), 'r+') as file:
             lines = file.readlines()
 
         for idx, line in enumerate(lines):
@@ -363,7 +362,7 @@ class W90():
                 if m:
                     lines[idx] = '{0:<17s} = {1}\n'.format(m.group(0), dis_dict[key])
 
-        with open(f'{self._dname}/{self._win}', 'w+') as file:
+        with open(os.path.join(self.path, self._win), 'w+') as file:
             file.writelines(lines)
 
     def update_bands(self):
@@ -376,8 +375,8 @@ class W90():
         self.w2v_ratio      : ratio of k-distance. Theoretically, it should be 2 * pi or 1
         self.nbnds_excl     : Number of VASP bands below the lowest Wannier90 band
         '''
-        self.vkk, self.vee = self._parse_dat(f'{self._dname}/{self.config.vasp_bnd}')
-        self.wkk, self.wee = self._parse_dat(f'{self._dname}/{self.config.w90_bnd}')
+        self.vkk, self.vee = self._parse_dat(os.path.join(self.path, self.config.vasp_bnd))
+        self.wkk, self.wee = self._parse_dat(os.path.join(self.path, self.config.w90_bnd))
         self.w2v_ratio = np.max(self.vkk) / np.max(self.wkk)   # Theoretically, it should be 2 * pi or 1
 
         # Use eigenvalues in first k-point to align W90 data and VASP data
@@ -391,7 +390,7 @@ class W90():
         Plot VASP band and Wannier90 band with legend. The file name is `{name}_VASP_W90_cmp.png`
         '''
         self.update_bands()
-        output_figure = os.path.join(self._dname, f'{name}_VASP_W90_cmp.png')
+        output_figure = os.path.join(self.path, f'{name}_VASP_W90_cmp.png')
 
         # general options for plot
         plt.rcParams['font.family'] = font
@@ -413,7 +412,7 @@ class W90():
                     label='Wannier90' if idx==0 else None)
 
         # kpoints labels: from `wannier90_band.labelinfo.dat` file
-        labelinfo = os.path.join(self._dname, 'wannier90_band.labelinfo.dat')
+        labelinfo = os.path.join(self.path, 'wannier90_band.labelinfo.dat')
         with open(labelinfo, 'r') as f:
             lines = f.readlines()
         label = [l.split()[0] for l in lines]
@@ -515,7 +514,7 @@ class W90():
         r'''
         Return spread message from `.wout` file.
         '''
-        conv_str = os.popen(f'grep CONV {self._dname}/{self._sys}.wout').read().split('\n')
+        conv_str = os.popen(f"grep CONV {os.path.join(self.path, self._sys +'.wout')}").read().split('\n')
         if len(conv_str) > 4:
             conv = conv_str[3:-1]
             spread = np.array([eval(c.split()[3]) for c in conv])
