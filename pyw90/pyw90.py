@@ -71,7 +71,7 @@ def get_args():
     # show distribution of eigenvalues
     parser_eig = subparsers.add_parser('eig', help='Show distribution of eigenvalues.')
     parser_eig.add_argument('mode', help='Mode: report, plot, count, suggest')
-    parser_cmp.add_argument('--config', action='store_true', default=False,
+    parser_eig.add_argument('--config', action='store_true', default=False,
                             help='Read input from config file `auto_w90_input.yaml` directly. Default: False')
     parser_eig.add_argument('--path', default='.',
                             help='The path of working dir. Please use relative path. Default: .')
@@ -169,11 +169,14 @@ def eig(args):
         w90.report_eigenval(erange=args.erange, separate=args.separate)
     elif args.mode[0].lower() == 'c': # count
         # Count how many states inside the energy interval
-        print(f'There are {w90.count_states(args.erange)} states in {args.erange}.')
+        print('For `dis_win_min` and `dis_win_max` settings:')
+        print(f'    {w90.count_states_least(args.erange)} states at least in {args.erange}.')
+        print('For `dis_froz_min` and `dis_froz_max` settings:')
+        print(f'    {w90.count_states_most(args.erange)} states at most in {args.erange} (At some kpoints).')
     elif args.mode[0].lower() == 's': # suggest
         # suggest frozen window with given energy interval
         print(f'`dis_froz_min` and `dis_froz_max` Table:')
-        df = w90.get_dis_froz_df(args.erange, eps=4e-3)
+        df = w90.get_dis_froz_df(args.erange)
         if len(df) > 0:
             print(df)
         # dis_windows require energy window containing states larger than number of target WFs. This will also generate some constraints for dis_windows

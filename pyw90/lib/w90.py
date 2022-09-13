@@ -17,13 +17,14 @@ class W90():
     r'''
     This is main class of `Auto-Wannier90-Fit` and contains necessary `dis_windows` parameters for `Wannier90`. The class also offers methods including `dis_window` suggestion and evaluating the quality of Wannier Functions.
     '''
-    def __init__(self, config:Config=None, win:str='wannier90.win', efermi=0, nwann=0, path:str='.', nbnds_excl:int=None, ndeg:int=1):
+    def __init__(self, config:Config=None, eig:str=None, win:str='wannier90.win', efermi=0, nwann=0, path:str='.', nbnds_excl:int=None, ndeg:int=1):
         '''
         Init
-
-        :param path: path of the working folder.
-        :param nbnds_excl: Number of bands which is not including below the lowest tight-binding model energy band (It doesn't mean the absolute value of lowest tight-bingding model energy band is higher than the excluded band from VASP ). The concept is similar to `exclued_bands` block in `.win` input for `Wannier90` to generate the overlap and projection of wave functions such as `.mmn` file.
-        :param ndeg: Degeneracy of bands. Only used in calcution of number Wannier functions from number of projections, i.e. #WFs = ndeg * #projs
+        
+        ### Parameters
+        - `path`: path of the working folder.
+        - `nbnds_excl`: Number of bands which is not including below the lowest tight-binding model energy band (It doesn't mean the absolute value of lowest tight-bingding model energy band is higher than the excluded band from VASP ). The concept is similar to `exclued_bands` block in `.win` input for `Wannier90` to generate the overlap and projection of wave functions such as `.mmn` file.
+        - `ndeg`: Degeneracy of bands. Only used in calcution of number Wannier functions from number of projections, i.e. #WFs = ndeg * #projs
         '''
         self.config = config
         if self.config != None:
@@ -36,7 +37,7 @@ class W90():
             self.nwann  = nwann
 
         self._sys   = self._win[:-4]
-        self._fname = self._sys + '.eig'
+        self._fname = self._sys + '.eig' if eig == None else eig
         self._dname = os.path.join(os.getcwd(), path)    # the directory containing the input file
         self.nbnds_excl = nbnds_excl
         self.ndeg   = ndeg      # denegeracy of bands, actually need to set 2 only meets Kramers degeneracy.
@@ -122,11 +123,14 @@ class W90():
         r'''
         Plot the eigenvalue distribution of each bands. When `separate` is `False`, we will merge the distribution of bands when there is no global gap.
 
-        :param erange: The energy interval you concerned about.
-        :param separate: Control whether to merge the bands without the global gap or not. Default is `False`.
-        :param savefig: The file name of saved image result.
+        ### Parameters
+        - `erange`: The energy interval you concerned about.
+        - `separate`: Control whether to merge the bands without the global gap or not. Default is `False`.
+        - `savefig`: The file name of saved image result.
         '''
-        fig, ax = plt.subplots(figsize=(8, 6))
+        plt.rcParams['font.family'] = "Open Sans"
+
+        fig, ax = plt.subplots()
 
         def label_bar(string, height, rect):
             """Attach a text label on top of bar."""
@@ -134,7 +138,9 @@ class W90():
                         xy=(rect.get_x() + rect.get_width()/2, height),
                         xytext=(0, 0),  # 4 points vertical offset.
                         textcoords='offset points',
-                        ha='center', va='bottom')
+                        ha='center', va='center')
+
+        import matplotlib.patheffects as pe
 
         # merge bands without global gap
         if not separate:
@@ -154,29 +160,40 @@ class W90():
             for i, (emin, emax) in enumerate(zip(eplot_min, eplot_max)):
                 if emax > ymin and emin < ymax:
                     rect = ax.bar(i, emax-emin, width=0.6, bottom=emin-self.efermi, color='b')
-                    label_bar(f'{idx_min[i]-self.nbnds_excl}', emax, rect[0])
+                    labeli = ax.bar_label(rect, labels=[f'{idx_min[i]-self.nbnds_excl}'], padding=5)
+                    for l in labeli:
+                        l.set_path_effects([pe.withStroke(linewidth=8, foreground="w")])
+                    # label_bar(f'{idx_min[i]-self.nbnds_excl}', emax, rect[0])
 
         # dont merge bands without global gap
         else:
+            savefig = savefig.split('.')[0] + '_separate.png'
             idx = np.arange(self.nbnds_excl, self.nbnds-1, self.ndeg) if self.nbnds_excl else np.arange(0, self.nbnds-1, self.ndeg)
             ymin, ymax = erange if erange else (-1e4, 1e4)
             for i in idx:
                 emin, emax = self.eband_min[i], self.eband_max[i]
                 if emax > ymin and emin < ymax:
                     rect = ax.bar(i, emax-emin, width=0.6, bottom=emin-self.efermi, color='b')
-                    label_bar(f'{i-self.nbnds_excl}', emax, rect[0])
+                    labeli = ax.bar_label(rect, labels=[f'{i-self.nbnds_excl}'], padding=5)
+                    for l in labeli:
+                        l.set_path_effects([pe.withStroke(linewidth=8, foreground="w")])
+                    # label_bar(f'{i-self.nbnds_excl}', emax, rect[0])
 
         ax.set(ylabel='Energy / eV')
+        ax.set_axisbelow(True)
         ax.grid()
 
-        plt.savefig(os.path.join(self._dname, savefig), dpi=200, bbox_inches='tight', transparent=True)
+        # save figure in local folder not in source folder
+        plt.savefig(os.path.join(os.getcwd(), savefig), dpi=200, bbox_inches='tight', transparent=True)
 
     def report_eigenval(self, erange:Tuple[float,float]=None, separate:bool=False):
         r'''
         Print the table of the eigenvalue distribution of each bands. When `separate` is `False`, we will merge the distribution of bands when there is no global gap.
 
-        :param erange: The energy interval you concerned about.
-        :param separate: Control whether to merge the bands without the global gap or not. Default is `False`.
+        ### Parameters
+
+        - `erange`: The energy interval you concerned about.
+        - `separate`: Control whether to merge the bands without the global gap or not. Default is `False`.
         '''
         print(f'EFERMI: {self.efermi: 2.6f}')
         print('--------------------------------')
@@ -214,10 +231,10 @@ class W90():
     def count_states_most(self, erange:Tuple[float,float]) -> int:
         r'''
         Return maximium number of states inside the energy interval defined in `erange` on all calculated k-points. Used in `dis_froz_max` and `dis_froz_min` check.
-
-        :param erange: The energy interval you concerned about.
+        
+        - `erange`: The energy interval you concerned about.
         '''
-        emin, emax = erange
+        emin, emax = min(erange), max(erange)
         mask = np.logical_and(self.eband_min <= emax, self.eband_max >= emin)
         return sum(mask)
 
@@ -225,9 +242,9 @@ class W90():
         r'''
         Return the minimum number of states inside the energy interval defined in `erange` on all calculated k-points. Used in `dis_win_max` check.
 
-        :param erange: The energy interval you concerned about.
+        - `erange`: The energy interval you concerned about.
         '''
-        emin, emax = erange
+        emin, emax = min(erange), max(erange)
         mask = np.logical_and(emin <= self.ir_ebands[0], self.ir_ebands[0] <= emax)
         return np.sum(mask, axis=1).min()
 
@@ -237,8 +254,10 @@ class W90():
         
         In order to avoid the insufficient sampling of k-points in Brilliouin zone, we manually add `self.eps` 
 
-        :param emin: `dis_win_min`.
-        :param nwann: Number of Wannier functions. If no input from arguments, we will use `self.nwann` from `.yaml` config file. Default is `None`.
+        ### Parameters
+        
+        - `emin`: `dis_win_min`.
+        - `nwann`: Number of Wannier functions. If no input from arguments, we will use `self.nwann` from `.yaml` config file. Default is `None`.
         '''
         # TODO handle error case for no enough states when `emin` is too large
         nwann = nwann if nwann else self.nwann
@@ -255,12 +274,16 @@ class W90():
         r'''
         Return lower limit of `dis_froz_min` for given `dis_froz_max` and `nwann`.
 
-        :param emax: `dis_froz_max`.
-        :param nwann: Number of Wannier functions. If no input from arguments, we will use `self.nwann` from `.yaml` config file. Default is `None`.
+        ### Parameters
+        
+        - `emax`: `dis_froz_max`.
+        - `nwann`: Number of Wannier functions. If no input from arguments, we will use `self.nwann` from `.yaml` config file. Default is `None`.
         '''
         nwann = nwann if nwann else self.nwann
         mask_emax = self.eband_min <= emax
-        idx = np.argmin(mask_emax) - nwann - 1
+        # the input `emax` is too large and there are no bands above `emax`
+        # idx = np.argmin(mask_emax) - nwann - 1    # cannot handle above case
+        idx = sum(mask_emax) - nwann - 1
         res = int(self.emin) - 1. if idx < 0 else self.eband_max[idx] + self.eps
         return res
 
@@ -268,12 +291,14 @@ class W90():
         r'''
         Return upper limit of `dis_froz_max` for given `dis_froz_min` and `nwann`.
 
-        :param emax: `dis_froz_min`.
-        :param nwann: Number of Wannier functions. If no input from arguments, we will use `self.nwann` from `.yaml` config file. Default is `None`.
+        ### Parameters
+
+        - `emax`: `dis_froz_min`.
+        - `nwann`: Number of Wannier functions. If no input from arguments, we will use `self.nwann` from `.yaml` config file. Default is `None`.
         '''
         nwann = nwann if nwann else self.nwann
         mask_emin = self.eband_max >= emin
-        idx = np.argmax(mask_emin) + nwann
+        idx = np.argmax(mask_emin) + nwann      # can also use: sum(np.logical_not(mask_emin)) + nwann
         res = int(self.emax) + 1. if idx >= self.nbnds else self.eband_min[idx] - self.eps
         return res
 
@@ -281,43 +306,48 @@ class W90():
         r'''
         Return `pd.DataFrame` with suggested frozen window inside the given energy interval.
 
-        :param erange: The energy interval you concerned about.
+        - `erange`: The energy interval you concerned about.
         '''
-        N = self.count_states(erange)
-        print(f'There are {N} states in {erange} with Fermi level at {self.efermi}.')
-        emin, emax = erange
+        N = self.count_states_most(erange)
+        print(f'There are {N} states at most in {erange} with Fermi level at {self.efermi}.')
+        emin, emax = min(erange), max(erange)
         dN = N - self.nwann
-        froz_min_list, froz_max_list = [], []
+        froz_min_list, froz_max_list, N = [], [], []
 
         if self.nwann <= 0:
             print(f'Please input vaild number of WF, now is {self.nwann}.')
-            return pd.DataFrame(columns=['dis_froz_min', 'dis_froz_max'])
+            return pd.DataFrame(columns=['dis_froz_min', 'dis_froz_max', 'N_at_most'])
 
         elif dN > 0:
             print('Suggest dis_froz_min & dis_froz_max as following:')
             print(f'nwann: {self.nwann}    degenercy: {self.ndeg}    Fermi: {self.efermi:12.6f}')
 
-            for i in range(1, dN + 1, self.ndeg):
+            for i in range(0, dN + 1, self.ndeg):
                 # First get froz_max for nwann = nwann_input + i, then get froz_min for nwann = nwann_input and froz_max
                 froz_max = self.suggest_froz_max(emin, nwann=self.nwann+i)
                 froz_min = self.suggest_froz_min(froz_max)
+                nstates  = self.count_states_most((froz_min, froz_max))
                 froz_max_list.append(froz_max)
                 froz_min_list.append(froz_min)
+                N.append(nstates)
 
             # number of missing states between `emin` and lowest `dis_froz_min`
-            num_missing = self.count_states((emin, min(froz_min_list)))
-            df = pd.DataFrame(zip(froz_min_list, froz_max_list), columns=['dis_froz_min', 'dis_froz_max'])
+            num_missing = self.count_states_most((emin, min(froz_min_list)))
+            df = pd.DataFrame(zip(froz_min_list, froz_max_list, N),
+                                 columns=['dis_froz_min', 'dis_froz_max', 'N_at_most'])
 
             if num_missing > 0:
-                print(f'\nWANRING: There are states between given `emin`: {emin} and lowest `dis_froz_min`: {min(froz_min_list)}. Please carefully treat the suggestion of dis_froz_min / dis_froz_max and check energy range of each bands again. This situation usually happens in no-SOC system with many denegeracy point. But we still want to give you some useful energy window information with states less than number of WFs.\n')
-                for i in range(self.nwann - num_missing + 1, self.nwann, 1):
+                print(f'\nWANRING: There are {num_missing} states between given `emin`: {emin} and lowest `dis_froz_min`: {min(froz_min_list)}. \n\nPlease carefully treat the suggestion of dis_froz_min / dis_froz_max and check energy range of each bands again. This situation usually happens in no-SOC system with many denegeracy point. But we still want to give you some useful energy window information with states less than number of WFs.\n')
+                for i in range(self.nwann - num_missing, self.nwann, 1):
+                    emax_i = self.suggest_froz_max(emin, nwann=i)
                     new = pd.DataFrame({"dis_froz_min" : emin,
-                                        "dis_froz_max" : self.suggest_froz_max(emin, nwann=i)}, index=[1])
-                    df = df.append(new, ignore_index=True)
+                                        "dis_froz_max" : emax_i,
+                                        "N_at_most"    : self.count_states_most((emin, emax_i))}, index=[1])
+                    df = pd.concat([df, new], ignore_index=True)
 
-            return df
+            return df.sort_values('dis_froz_min')
         else:
-            return pd.DataFrame(columns=['dis_froz_min', 'dis_froz_max'])
+            return pd.DataFrame(columns=['dis_froz_min', 'dis_froz_max', 'N_at_most'])
 
     def edit_win(self, dis_dict:Dict[str,float]):
         r'''
@@ -430,7 +460,7 @@ class W90():
         self.dEs     : summation of band difference including weight factor from kernel function over all k-points.
         self.dEs_max : maximium of band difference includeing weight factor from kernel function over all k-points.
 
-        :param mode: 'AbAk', 'AbMk', 'MbAk', 'MbMk'. The abberation of `A` and `M` means `Average` and `Maximum`. And the abberation of `b` and `k` means bands and k-points. During the test, `AbAk` gives the best result and it becomes the default mode. It might need to switch to other evaluation in some special cases.
+        - `mode`: 'AbAk', 'AbMk', 'MbAk', 'MbMk'. The abberation of `A` and `M` means `Average` and `Maximum`. And the abberation of `b` and `k` means bands and k-points. During the test, `AbAk` gives the best result and it becomes the default mode. It might need to switch to other evaluation in some special cases.
         """
         self.update_bands()
         kernel = self.config.kernel if kernel == None else kernel
@@ -497,7 +527,7 @@ class W90():
         r"""
         generate optimized `dis windows` dict from input array
 
-        :param opt_input: List of all energy values to be optimized with default order in `self.opt_ini_dis`.
+        - `opt_input`: List of all energy values to be optimized with default order in `self.opt_ini_dis`.
         """
         if len(opt_input) != len(self.config.opt_ini_dis):
             raise ValueError(f'There are only {len(self.config.opt_ini_dis)} parameters but {len(opt_input)} input!')
@@ -507,7 +537,7 @@ class W90():
         r'''
         Get full `dis_windows` with value with replacing `None` to `\pm self.inf`
 
-        :param opt_input: List of all energy values to be optimized with default order in `self.opt_ini_dis`.
+        - `opt_input`: List of all energy values to be optimized with default order in `self.opt_ini_dis`.
         '''
         if len(opt_input) != len(self.config.opt_ini_dis):
             raise ValueError(f'There are only {len(self.config.opt_ini_dis)} parameters but {len(opt_input)} input!')
@@ -523,7 +553,7 @@ class W90():
         r"""
         Check input value. When number of states inside frozen windows is greater than number of WFs or number of states inside dis windows is less than number of WFs, the function will return `False` with WARNING.
 
-        :param opt_input: List of all energy values to be optimized with default order in `self.opt_ini_dis`.
+        - `opt_input`: List of all energy values to be optimized with default order in `self.opt_ini_dis`.
         """
         dis = self.total_dis_dict(opt_input)
         n_froz = self.count_states_most((dis['dis_froz_min'], dis['dis_froz_max']))
@@ -540,7 +570,7 @@ class W90():
         r'''
         Display full dis energy windows with value and range via `logging.Logger`.
 
-        :param opt_input: List of all energy values to be optimized with default order in `self.opt_ini_dis`.
+        - `opt_input`: List of all energy values to be optimized with default order in `self.opt_ini_dis`.
         '''
         opt_input_dict = self.opt_dis_dict(opt_input)
         logger.info(f"+{'ENERGY-WINDOWS'.center(78, '-')}+")
@@ -559,7 +589,7 @@ class W90():
         r'''
         Return rationalized full dis windows dict from input. `Wannier90` requires at most #WFs of states inside the frozen energy window and at least #WFs of states inside the dis energy window. We treat the input `dis_win_min` as beginning to generate `dis_froz_max`, `dis_froz_min` and `dis_win_max` which satisifying the requirement of `Wannier90`.
         
-        :param opt_input: List of all energy values to be optimized with default order in `self.opt_ini_dis`.
+        - `opt_input`: List of all energy values to be optimized with default order in `self.opt_ini_dis`.
         '''
         dis = self.total_dis_dict(opt_input)
         emin = dis['dis_win_min']

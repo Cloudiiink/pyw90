@@ -9,7 +9,7 @@ from typing import Tuple
 
 # pymatgen
 from pymatgen.io.vasp.outputs import Vasprun
-from pymatgen import Orbital, Spin
+from pymatgen.electronic_structure.core import Orbital, Spin
 from pymatgen.electronic_structure.dos import CompleteDos
 from pymatgen.core import structure
 
@@ -122,24 +122,22 @@ def dos_analysis_df(dos_df: pd.DataFrame, lb: float=0.1) -> Tuple[int, pd.DataFr
     1      As   -1  [p]
     ```
     """
-    # 选择出满足条件的轨道
     threshold = lb * dos_df['dos'].max()
     df = dos_df[dos_df['dos'] > threshold]
     n_orb = len(df)
-    res_df = pd.DataFrame(columns=["species", "site", "orb"])       # 存储筛选结果数据表, 分为两个部分, site 和 orb
+    res_df = pd.DataFrame(columns=["species", "site", "orb"])       # Store the recommendation results
 
-    # 判断一个格点上是否同一类型的轨道都被选择了
+    # Simplify the results using spd electron configuration
     d_orb = ['dxy', 'dyz', 'dxz', 'dx2', 'dz2']
     p_orb = ['px', 'py', 'pz']
     s_orb = ['s']
 
-    # 循环遍历所有元素进行检查
+    # Iterate to check all the `species` in the material
     for species in df.species.unique():
         species_sites = df[df["species"]==species].structure_id.unique()
 
-        # 如果轨道集合中包含 spd 轨道或者和其它轨道的组成, 需要进行简化
-        # 比如将 [s, px, py, pz, dx2] 简化为 [s, p, dx2]
-        # 检查各格点上的轨道是否可以统一为 spd
+        # Simplify the orbitals using `spd` electron configuration
+        # e.g. convert [s, px, py, pz, dx2] to [s, p, dx2]
         for idx in species_sites:
             site_df = df[df["structure_id"]==idx]
             site_orbs = site_df.orb_name.unique()
@@ -155,13 +153,13 @@ def dos_analysis_df(dos_df: pd.DataFrame, lb: float=0.1) -> Tuple[int, pd.DataFr
             new = pd.DataFrame({"species": species,
                                 "site": idx,
                                 "orb": [site_orbs]}, index=[1])
-            res_df = res_df.append(new, ignore_index=True)
+            res_df = pd.concat([res_df, new], ignore_index=True)
 
     # display(res_df)
 
-    # 合并具有同样元素同一轨道的格点
+    # merging the sites that have the same projections
     for species in res_df.species.unique():
-        # 获取这个元素对应的所有 structure 的 id
+        # get structure id
         species_site_id = dos_df[dos_df["species"]==species].structure_id.unique()
         species_site = res_df[res_df["species"]==species].site.unique()
         species_site_orbs = res_df[res_df["species"]==species].orb
@@ -169,13 +167,12 @@ def dos_analysis_df(dos_df: pd.DataFrame, lb: float=0.1) -> Tuple[int, pd.DataFr
             ref_orb = species_site_orbs.to_list()[0]
             is_orb_united = reduce(lambda x, y: x and y, [Counter(ref_orb)==Counter(orb) for orb in species_site_orbs])
             if is_orb_united:
-                # 删除所有具有这一元素的数据
+                # delete all the entries of the `speices` and Add data after merging, use `-1` to represent the site
                 res_df = res_df[res_df['species']!=species]
-                # 添加一行合并后的数据, -1 表示合并后的格点
                 new = pd.DataFrame({"species": species,
                                     "site": -1,
                                     "orb": [list(ref_orb)]})
-                res_df = res_df.append(new, ignore_index=True)
+                res_df = pd.concat([res_df, new], ignore_index=True)
 
     # display(res_df)
     return n_orb, res_df
@@ -222,7 +219,7 @@ def w90_string(res_df: pd.DataFrame, structure: structure) -> str:
     print('\n'.join([s for s in w90_string_list]))
 
 def dos_given_site_orb(dos_data_total: pd.DataFrame, erange: Tuple[float, float], key_string: str, 
-                       orb_names: list(str)=['s', 'py', 'pz', 'px', 'dxy', 'dyz', 'dz2', 'dxz', 'dx2']) -> float:
+                       orb_names: list[str]=['s', 'py', 'pz', 'px', 'dxy', 'dyz', 'dz2', 'dxz', 'dx2']) -> float:
     r"""
     Return DOS contribution for site and orbital from `key_string` (e.g. `C_1_pz`) via interpolation.
     """
@@ -235,14 +232,14 @@ def dos_given_site_orb(dos_data_total: pd.DataFrame, erange: Tuple[float, float]
     dis = dos_distribute(dos.energies, dos.densities[Spin.up], erange)
     return dis
 
-def dos_given_selected(dos_data_total: pd.DataFrame, erange: Tuple[float, float], selected: set(str)) -> float:
+def dos_given_selected(dos_data_total: pd.DataFrame, erange: Tuple[float, float], selected: set[str]) -> float:
     r"""
     Return DOS contribution from selected sites and orbitals inside energy interval interpolation.
     """
     dis = [dos_given_site_orb(dos_data_total, erange, key) for key in selected]
     return np.sum(dis)
 
-def select_str2list(s: str, orb_names: list(str)=['s', 'py', 'pz', 'px', 'dxy', 'dyz', 'dz2', 'dxz', 'dx2']) -> set(str):
+def select_str2list(s: str, orb_names: list[str]=['s', 'py', 'pz', 'px', 'dxy', 'dyz', 'dz2', 'dxz', 'dx2']) -> set[str]:
     r"""
     Convert input string to `set` with `key_string` format.
     
