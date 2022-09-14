@@ -1,0 +1,23 @@
+[build-system]
+requires = ["pymatgen", "scipy>=1.8", "numpy", "PyYAML", "pandas", "matplotlib>=3.4"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyw90_Cloudiiink"
+version = "1.0.0"
+authors = [
+  { name="En Wang (Cloudiiink)", email="wangenzj@gmail.com" },
+]
+description = "A tool interfaced to VASP and Wannier90 with projection analysis and automatically dis energy window optimization"
+readme = "README.md"
+license = { file="LICENSE" }
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/Cloudiiink/pyw90"
+"Bug Tracker" = "https://github.com/Cloudiiink/pyw90/issues"

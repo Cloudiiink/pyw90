@@ -1,4 +1,3 @@
-from curses.ascii import isdigit
 import subprocess
 import signal
 import os
@@ -19,7 +18,7 @@ def get_args():
     subparsers = parser.add_subparsers(help='Main features')
 
     # auto-wannier90-fit
-    parser_auto = subparsers.add_parser('auto', help='(Auto Wannier90 Fit) Using minimize method to choose the most suitable energy windows.')
+    parser_auto = subparsers.add_parser('auto', help='(Auto Wannier90 Fit) Using minimize method to choose the most suitable dis energy windows.')
     parser_auto.add_argument('mode', 
                              help='Mode: run, term(inate), input. Only first character is recognized.')
     parser_auto.add_argument('--path', default='.',
