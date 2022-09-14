@@ -3,7 +3,7 @@ requires = ["pymatgen", "scipy>=1.8", "numpy", "PyYAML", "pandas", "matplotlib>=
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pyw90_Cloudiiink"
+name = "pyw90"
 version = "1.0.0"
 authors = [
   { name="En Wang (Cloudiiink)", email="wangenzj@gmail.com" },
