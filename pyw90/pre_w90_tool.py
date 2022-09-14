@@ -43,7 +43,7 @@ def dos_distribute(e: ArrayLike, dos: ArrayLike,
     res = fixed_quad(dos_func, left, right)
     return res[0]
 
-def gen_dos_df(dos_data_total: CompleteDos, left: float, right: float,
+def gen_dos_df(dos_data_total: CompleteDos, left: float, right: float, spin: Spin=Spin.up,
                orb_names: list[str]=['s', 'py', 'pz', 'px', 'dxy', 'dyz', 'dz2', 'dxz', 'dx2']) -> pd.DataFrame:
     r"""
     Return `pandas.DataFrame` with columns: `species`, `structure_id`, `orb_id`, `orb_name`, `key_string` and `dos`.
@@ -64,8 +64,7 @@ def gen_dos_df(dos_data_total: CompleteDos, left: float, right: float,
         for j in range(len(orb_names)):
             site, orb = structure[i], Orbital(j)
             dos = dos_data_total.get_site_orbital_dos(site, orb)
-            # TODO: handle spinful system
-            dis = dos_distribute(ee, dos.densities[Spin.up], [left, right])
+            dis = dos_distribute(ee, dos.densities[spin], [left, right])
             key = site.species_string + '_' + str(i) + '_' + orb_names[j]       # how to formulate the key string for every entries
             lspec.append(site.species_string)
             lstruc.append(i)
@@ -226,18 +225,17 @@ def w90_string(res_df: pd.DataFrame, structure: structure) -> str:
             w90_string_list.append(f"f={site_string}:{orb_string(row['orb'])}") # !!! f=... ? or c=...?
     print('\n'.join([s for s in w90_string_list]))
 
-def dos_given_site_orb(dos_data_total: pd.DataFrame, erange: Tuple[float, float], key_string: str, 
+def dos_given_site_orb(dos_data_total: pd.DataFrame, erange: Tuple[float, float], key_string: str, spin: Spin=Spin.up,
                        orb_names: list[str]=['s', 'py', 'pz', 'px', 'dxy', 'dyz', 'dz2', 'dxz', 'dx2']) -> float:
     r"""
-    Return DOS contribution for site and orbital from `key_string` (e.g. `C_1_pz`) via interpolation.
+    Return DOS contribution of `erange` for site and orbital from `key_string` (e.g. `C_1_pz`) via interpolation.
     """
     structure = dos_data_total.structure
     _, site_id, orb_id = key_string.split('_')
     site = structure[int(site_id)]
     orb = Orbital(orb_names.index(orb_id))
     dos = dos_data_total.get_site_orbital_dos(site, orb)
-    # TODO: handle spinful system / Add spin channel selection
-    dis = dos_distribute(dos.energies, dos.densities[Spin.up], erange)
+    dis = dos_distribute(dos.energies, dos.densities[spin], erange)
     return dis
 
 def dos_given_selected(dos_data_total: pd.DataFrame, erange: Tuple[float, float], selected: set[str]) -> float:
@@ -377,6 +375,8 @@ def get_args():
                         help='Degeneracy of bands. Default: 1')
     parser.add_argument('--lb', action='store', type=float, default=0.1,
                         help='Lower bound for selected orbital / max single orbital. default: 0.1')
+    parser.add_argument('--spin-down', action='store_true', default=False,
+                        help="Specify the spin channel to `Spin.down`. Without this argument, the default one is `Spin.up`.")
     parser.add_argument('-e', dest='erange', action='store', type=float,
                         default=None, nargs=2,
                         help='Energy range.')
@@ -408,7 +408,8 @@ def main_features(args):
         export_vasp_band(path)
     elif args.mode[0].lower() == 'd':   # DOS Analysis
         efermi = get_efermi(args, from_file=True)
-        lb = args.lb
+        spin   = Spin.down if args.spin_down else Spin.up
+        lb     = args.lb
 
         vasprun = Vasprun(os.path.join(path, "vasprun.xml"))
         print(f"\nReading vasprun.xml file from\n    `{abspath(os.path.join(path, 'vasprun.xml'))}` \n" \
@@ -424,7 +425,7 @@ def main_features(args):
         erange = left, right
         dos_data_total = vasprun.complete_dos       # get dos data
         structure = dos_data_total.structure
-        dos_df = gen_dos_df(dos_data_total, left, right)
+        dos_df = gen_dos_df(dos_data_total, left, right, spin=spin)
         
         if len(args.extra) == 0:
             print()
@@ -459,8 +460,7 @@ def main_features(args):
             dis_tdos_l, dis_pdos_l, percent_l = [], [], []
             for fmin, fmax in zip(dis_froz_df['dis_froz_min'], dis_froz_df['dis_froz_max']):
                 dis_pdos = dos_given_selected(dos_data_total, (fmin, fmax), selected)
-                # TODO: add spin channel selection
-                dis_tdos = dos_distribute(vasprun.tdos.energies, vasprun.tdos.densities[Spin.up], (fmin, fmax))
+                dis_tdos = dos_distribute(vasprun.tdos.energies, vasprun.tdos.densities[spin], (fmin, fmax))
                 percent  = dis_pdos / dis_tdos
                 dis_tdos_l.append(dis_tdos)
                 dis_pdos_l.append(dis_pdos)

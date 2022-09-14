@@ -66,6 +66,8 @@ def get_args():
                             help="Flag for whether the input `erange` has subtract the Fermi energy or not. Default: False")
     parser_pre.add_argument('--lb', action='store', type=float, default=0.1,
                             help='Lower bound for selected orbital / max single orbital. default: 0.1')
+    parser_pre.add_argument('--spin-down', action='store_true', default=False,
+                            help="Specify the spin channel to `Spin.down`. Without this argument, the default one is `Spin.up`.")
     parser_pre.add_argument('-e', dest='erange', action='store', type=float,
                             default=None, nargs=2,
                             help='Energy range.')
