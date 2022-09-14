@@ -1,5 +1,6 @@
 import os, time, io
 import pandas as pd
+import subprocess
 
 from lib.config import Config
 
@@ -13,7 +14,11 @@ class Job():
     def __init__(self, config:Config):
         self.config = config
         self.win = config.win
-        self.run = config.run
+        self.local = config.local
+        if self.local:
+            self.localrun = config.localrun
+        else:
+            self.run = config.run
         self.usr_name = config.usr_name
         self.job_name = config.job_name
         self.num_print_check = config.num_print_check
@@ -37,25 +42,44 @@ class Job():
         '''
         check = 0
         logger.info(f'Job <{self.job_name}> is running!'.ljust(80, ' '))
-        num_jobs = len(self.get_jobs())
+        num_jobs = self.get_num_jobs()
+        logger.debug(f'Job <{self.job_name}> has `num_jobs` {num_jobs}'.ljust(80, ' '))
+        if self.local:
+            logger.debug(f'Job <{self.job_name}> run with PID {self.p.pid}'.ljust(80, ' '))
         while num_jobs > 0:
             check += 1
             if check % self.num_print_check == 0:
                 logger.debug(f'Job <{self.job_name}> is still running.'.ljust(80, ' '))
             time.sleep(self.check_time)
-            num_jobs = len(self.get_jobs())
+            num_jobs = self.get_num_jobs()
+
+    def get_num_jobs(self):
+        if self.local:
+            if self.p.poll() is None:
+                return 1
+            else:
+                return 0
+        else:
+            return len(self.get_jobs())
 
     def submit(self):
         r'''
         Submitting task of `self.config.run` file via the `sbatch` command.
 
+        If `self.local` is True, run the task directly according self.localrun from `.yaml` file.
+
         Noticed: Allow to submit only when there are no job with the same name
         '''
-        num_jobs = len(self.get_jobs())
-        if num_jobs == 0:
-            os.system('sbatch {0}'.format(self.run))
+        if self.local:
+            p = subprocess.Popen(self.localrun.split(), start_new_session=True)
+            logger.debug(f'{self.job_name} run with PID: {p.pid}')
+            self.p = p
         else:
-            raise ValueError('There is already {0} *{1}* task!'.format(num_jobs, self.job_name))
+            num_jobs = len(self.get_jobs())
+            if num_jobs == 0:
+                os.system('sbatch {0}'.format(self.run))
+            else:
+                raise ValueError('There is already {0} *{1}* task!'.format(num_jobs, self.job_name))
 
     def cancel(self):
         r"""

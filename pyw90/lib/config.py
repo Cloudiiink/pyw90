@@ -3,7 +3,7 @@ import numpy as np
 from collections import OrderedDict
 from scipy.optimize import Bounds, LinearConstraint
 
-from utility.utility import gaussian, unit, parse_kernel
+from utility.utility import parse_kernel
 from utility.utility import _replace_str_boolean, _replace_str_none
 
 import logging
@@ -26,13 +26,19 @@ class Config():
         with open(os.path.join(os.getcwd(), yaml_file),'r', encoding='utf-8') as f:
             data = yaml.load(f, Loader=yaml.FullLoader)
         
-        self._dname   = os.getcwd()
+        self.local    = data['local']
+        self.path     = os.getcwd()
         self.win      = data['winfile']
-        self.run      = data['runfile']
         self.vasp_bnd = data['vasp_band_file']
         self.w90_bnd  = data['wann_band_file']
         self.job_name = data['jobname']
         self.usr_name = data['username']
+
+        if not self.local:
+            self.run      = data['runfile']
+        else:
+            self.localrun = data['localrun']
+
         self.efermi   = data['efermi']
         self.nwann    = data['nwann']
         # Minimization Related parameters
@@ -50,7 +56,7 @@ class Config():
                         for key in self.dis_keys])
         self.opt_dis = OrderedDict([(key, data['opt_dis'][key]) 
                         for key in self.dis_keys])
-        self.opt_dis = _replace_str_boolean(self.opt_dis)
+        # self.opt_dis = _replace_str_boolean(self.opt_dis)
         
         bounds = _replace_str_none(data['bounds'])
         
@@ -76,34 +82,40 @@ class Config():
 
         self.num_print_check = int(data['num_print_check'])
         self.check_time = int(data['check_time'])
-        self.display = _replace_str_boolean(data['display'])
+        self.display = data['display']
+        # self.display = _replace_str_boolean(data['display'])
 
         self.check_input()
 
     def check_input(self):
         # check files exist or not
-        for file in [self.win, self.run, self.vasp_bnd]:
-            if not os.path.isfile(file):
-                raise FileNotFoundError('File {0} Not Found!'.format(file))
+        if self.local:
+            for file in [self.win, self.vasp_bnd]:
+                if not os.path.isfile(file):
+                    raise FileNotFoundError('File {0} Not Found!'.format(file))
+        else:
+            for file in [self.win, self.run, self.vasp_bnd]:
+                if not os.path.isfile(file):
+                    raise FileNotFoundError('File {0} Not Found!'.format(file))
 
-        # TODO : add PBS job queue system support
-        # check job name
-        pattern = r'^\s*#\s*SBATCH -(\-job\-name|J)\s*=?(.+)\n'
-        with open(self.run) as f:
-            lines = f.readlines()
-        for line in lines:
-            m = re.match(pattern, line)
-            if m:
-                run_file_job_name = m.group(2).strip()
-                break
-        if self.job_name != run_file_job_name:
-            raise ValueError('The jobname is inconsistent! In batch file the jobname is {0}. But it\'s {1} in settings.yaml file instead.'.format(run_file_job_name, self.job_name))
+            # TODO : add PBS job queue system support
+            # check job name
+            pattern = r'^\s*#\s*SBATCH -(\-job\-name|J)\s*=?(.+)\n'
+            with open(self.run) as f:
+                lines = f.readlines()
+            for line in lines:
+                m = re.match(pattern, line)
+                if m:
+                    run_file_job_name = m.group(2).strip()
+                    break
+            if self.job_name != run_file_job_name:
+                raise ValueError('The jobname is inconsistent! In batch file the jobname is {0}. But it\'s {1} in settings.yaml file instead.'.format(run_file_job_name, self.job_name))
 
-        # check user name
-        from getpass import getuser
-        local_usr_name = getuser()
-        if self.usr_name != local_usr_name:
-            raise ValueError('The username is inconsistent! Your username is {0}. But it\'s {1} in settings.yaml file instead.'.format(local_usr_name, self.usr_name))
+            # check user name
+            from getpass import getuser
+            local_usr_name = getuser()
+            if self.usr_name != local_usr_name:
+                raise ValueError('The username is inconsistent! Your username is {0}. But it\'s {1} in settings.yaml file instead.'.format(local_usr_name, self.usr_name))
 
         # check Fermi level
         if 'vasprun.xml' in os.listdir():
@@ -119,7 +131,10 @@ class Config():
         '''
         logger.info(f"+{'FILE-LOCATION'.center(78, '-')}+")
         logger.info(f"|{' Wannier90 Input File':>35s}   :   {self.win:<35s} |")
-        logger.info(f"|{'   Slurm Batch Script':>35s}   :   {self.run:<35s} |")
+        if self.local:
+            logger.info(f"|{'   run locally via':>35s}   :   {self.localrun:<35s} |")
+        else:
+            logger.info(f"|{'Slurm Batch Script':>35s}   :   {self.run:<35s} |")
         logger.info(f"|{'   DFT Band Structure':>35s}   :   {self.vasp_bnd:<35s} |")
         logger.info(f"|{'   W90 Band Structure':>35s}   :   {self.w90_bnd:<35s} |")
         logger.info(f"+{''.center(78, '-')}+")

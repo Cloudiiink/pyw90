@@ -1,0 +1,77 @@
+---
+# * Auto Wannier90 Fit settings
+# - `.yaml` files are case-sensitive and use indentation to indicate hierarchical relationships. 
+# - Tabs are not allowed for indentation with only spaces allowed.
+# - `.yaml` files can be commented with #.
+
+# ! - Modify the value of each keywords to your own.
+
+# File location
+winfile: ./wannier90.win
+runfile: ./w90.script
+vasp_band_file: ./bnd.dat
+wann_band_file: ./wannier90_band.dat
+
+# system
+jobname: w90
+username: enwang
+
+# run at the local machine not via SLURM
+# ! YOU HAVE TO KNOWN WHAT YOU ARE DOING
+# 
+# If you have any question, please ask the administrator of your server. DO AT YOUR OWN RISK
+# If you choose to run locally, you don't need to give `runfile` value
+local: False
+# how to run your job locally. Only used when `local` is `True`.
+# single core
+localrun: wannier90.x wannier90
+# Parallel version
+# localrun: mpirun -np 10 wannier90.x wannier90
+
+# band structure
+# the fermi level of this system
+efermi: 3.467
+# kernal function used to evalute the quality of Wannier90 band
+kernel: [unit, 3.5, 1]
+# number of WFs
+nwann: 6
+# Method of minimize: `Nelder-Mead`, `Powell`, `COBYLA`
+# Only the first character counts
+method: COBYLA #Powell # Nelder-Mead
+# tolerance and maxiter of minimize
+tol: 2e-2
+maxiter: 100
+
+# initial dis win parameters settings
+# if one parameter is not needed, please set to None or ~
+ini_dis:
+    dis_win_max  : 10.0
+    dis_froz_max : 5.0
+    dis_froz_min : -3.5
+    dis_win_min  : -3.5
+
+# Choose which parameters to optimize
+opt_dis:
+    dis_win_max  : True
+    dis_froz_max : True
+    dis_froz_min : False
+    dis_win_min  : False
+
+# boundary of energy window parameters
+# using None or +/- inf to set the boundary which is unbounded
+bounds:
+- [ 6.0, None]
+- [ 4.5, None]
+- [None, None]
+- [None, None]
+
+# print check message settings
+# How many check then print once 
+num_print_check: 1
+# waiting time until next check
+check_time: 30
+
+# Display spreading and diff
+display:
+    spread : False
+    diff   : True

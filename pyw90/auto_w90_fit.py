@@ -10,11 +10,10 @@ from lib.job import Job
 from lib.w90 import W90
 
 import logging
-logger = logging.getLogger(__name__)
 
 strtime = time.strftime(r'%Y%m%d%H%M%S', time.localtime())
 logfilename = 'log_autow90_{0}.log'.format(strtime)
-logging.basicConfig(level=logging.INFO,     # loggingDEBUG
+logging.basicConfig(level=logging.DEBUG,     # logging.INFO
                     filename=logfilename,
                     datefmt='%H:%M:%S',
                     format='%(message)s ! %(asctime)s/%(levelname)s/%(module)s/%(lineno)d')
@@ -48,7 +47,7 @@ def main_task(opt_input:ArrayLike, w90:W90) -> float:
     job.submit()
     logger.info("Successfully submit the task!".ljust(80, ' '))
     time.sleep(5)
-    job.check_run_until_stop(logger)
+    job.check_run_until_stop()
     logger.info('Job <{0}> is done.'.format(w90.config.job_name).ljust(80, ' '))
 
     mtime = time.ctime(os.path.getmtime(w90.config.w90_bnd))
@@ -69,6 +68,9 @@ if __name__ == '__main__':
                     ──█▀▀█─█  █ ▀▀█▀▀ █▀▀█ ░█  ░█ ▄▀▀▄ █▀▀█
                      ░█▄▄█ █  █   █ ──█──█─░█░█░█ ▀▄▄█ █▄▀█
                      ░█ ░█ ─▀▀▀───▀─  ▀▀▀▀ ░█▄▀▄█──▄▄▀ █▄▄█
+                     
+    Module for automatically dis energy window optimization inside `pyw90`.
+    For more information, please refer to https://github.com/Cloudiiink/pyw90
                                                                                 """)
 
     config = Config(yaml_file= f"{args.path}/auto_w90_input.yaml")

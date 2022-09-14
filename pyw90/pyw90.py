@@ -1,7 +1,9 @@
+from curses.ascii import isdigit
 import subprocess
 import signal
 import os
 import argparse
+import shutil
 
 from lib.w90 import W90
 from lib.job import Job
@@ -18,7 +20,8 @@ def get_args():
 
     # auto-wannier90-fit
     parser_auto = subparsers.add_parser('auto', help='(Auto Wannier90 Fit) Using minimize method to choose the most suitable energy windows.')
-    parser_auto.add_argument('mode', help='Mode: run, term(inate)')
+    parser_auto.add_argument('mode', 
+                             help='Mode: run, term(inate), input. Only first character is recognized.')
     parser_auto.add_argument('--path', default='.',
                              help='The path of working dir. Please use relative path. Default: .')
     parser_auto.add_argument('--pid', default=None, type=int,
@@ -113,28 +116,42 @@ def auto(args):
     r'''
     (Auto Wannier90 Fit) Using minimize method to choose the most suitable energy windows.
     '''
+    path = os.path.dirname(os.path.realpath(__file__))
     if args.mode.lower()[0] == 'r':  # run
         log  = os.path.join(args.path, 'auto_w90_output.txt')
-        p = subprocess.Popen(['python', 'auto_w90_fit.py'],
+        p = subprocess.Popen(['python', os.path.join(path, 'auto_w90_fit.py')],
                                stdin  = subprocess.DEVNULL,
                                stdout = open(log, 'w'),
                                stderr = open(log, 'w'),
                                start_new_session=True)
         print(f'Auto-W90-Fit run with PID: {p.pid}')
+    elif args.mode.lower()[0] == 'i':   # input
+        print(f'Create example input file for `auto` menu at local folder')
+        shutil.copy(os.path.join(path, 'auto_w90_input.yaml'), os.getcwd())
     elif args.mode.lower()[0] == 't':   # terminate
         print(f'Kill the job with PID {args.pid} as listed')
-        ps = os.popen('ps aux | grep auto_w90_fit').read()
+
+        from getpass import getuser
+        local_usr_name = getuser()
+
+        ps = os.popen(f'ps aux | grep {local_usr_name}').read()
         print(ps)
         all_pid = [int(s.split()[1]) for s in ps.strip().split('\n')]
         print('Input Y(es) / N(o) (Or input the pid listed above you want to terminate): ')
+        print('IMPORTANT: If you run task local, input the `auto_w90_fit.py` and `wannier90.x` separate with comma (e.g. 2101, 2121)')
+        print('           Otherwise `auto_w90_fit.py` will repeatedly submit new tasks.')
         usr_input = input()
         if usr_input.lower()[0] == 'y':
             os.killpg(os.getpgid(args.pid), signal.SIGTERM)  # Send the signal to all the process groups
             config = Config(yaml_file='auto_w90_input.yaml')
             jobs = Job(config)
             jobs.cancel()
-        elif eval(usr_input) in all_pid:
-            os.killpg(os.getpgid(eval(usr_input)), signal.SIGTERM)  # Send the signal to all the process groups
+            return
+        elif usr_input[0].isdigit():
+            usr_input_pid = [int(i.strip()) for i in usr_input.split(',')]
+            for upid in all_pid:
+                if upid in all_pid:
+                    os.killpg(os.getpgid(upid), signal.SIGTERM)  # Send the signal to all the process groups
             config = Config(yaml_file='auto_w90_input.yaml')
             jobs = Job(config)
             jobs.cancel()
@@ -221,6 +238,15 @@ def eig(args):
 # MAIN
 
 if __name__ == '__main__':
+    print('                                   \n' \
+          '         █▀▀█─█  █─░█──░█ ▄▀▀▄ █▀▀█\n' \
+          '        ─█──█ █▄▄█ ░█░█░█ ▀▄▄█ █▄▀█\n' \
+          '         █▀▀▀ ▄▄▄█ ░█▄▀▄█ ─▄▄▀ █▄▄█\n' \
+          '                                   \n' \
+          'A tool interfaced to VASP and Wannier90 with projection analysis\n' 
+          '       and automatically dis energy window optimization.\n' \
+          '                                   \n' \
+          'For more information, please refer to https://github.com/Cloudiiink/pyw90 \n')
     args = get_args()
     args.path = os.path.join(os.getcwd(), args.path)
     args.func(args)
