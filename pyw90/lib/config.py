@@ -3,8 +3,8 @@ import numpy as np
 from collections import OrderedDict
 from scipy.optimize import Bounds, LinearConstraint
 
-from utility.utility import parse_kernel
-from utility.utility import _replace_str_boolean, _replace_str_none
+from pyw90.utility.utility import parse_kernel
+from pyw90.utility.utility import _replace_str_boolean, _replace_str_none
 
 import logging
 logger = logging.getLogger(__name__)

@@ -2,7 +2,7 @@ import os, time, io
 import pandas as pd
 import subprocess
 
-from lib.config import Config
+from pyw90.lib.config import Config
 
 import logging
 logger = logging.getLogger(__name__)

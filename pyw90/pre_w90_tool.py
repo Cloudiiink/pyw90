@@ -14,7 +14,9 @@ from pymatgen.electronic_structure.core import Orbital, Spin
 from pymatgen.electronic_structure.dos import CompleteDos
 from pymatgen.core import structure
 
-from utility.utility import get_efermi
+# pyw90
+from pyw90.utility.utility import get_efermi
+from pyw90.lib.w90 import W90
 
 # Calculate the percentage of given sites and given orbitals inside the energy interval
 # from scipy.interpolate import interp1d
@@ -446,8 +448,6 @@ def main_features(args):
         else:
             selected = select_str2list(args.extra)
             nwann = int(args.deg * len(selected))
-
-            from lib.w90 import W90
 
             w90 = W90(eig='EIGENVAL',
                       path=path,

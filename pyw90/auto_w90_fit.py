@@ -5,9 +5,10 @@ import numpy as np
 from numpy.typing import ArrayLike
 import argparse
 
-from lib.config import Config
-from lib.job import Job
-from lib.w90 import W90
+# pyw90
+from pyw90.lib.config import Config
+from pyw90.lib.job import Job
+from pyw90.lib.w90 import W90
 
 import logging
 

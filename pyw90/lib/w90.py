@@ -8,7 +8,7 @@ from collections import OrderedDict
 from scipy import interpolate
 from scipy.signal import savgol_filter
 
-from lib.config import Config
+from pyw90.lib.config import Config
 
 import logging
 logger = logging.getLogger(__name__)

@@ -4,11 +4,12 @@ import os
 import argparse
 import shutil
 
-from lib.w90 import W90
-from lib.job import Job
-from lib.config import Config
-from utility.utility import get_efermi, show_all_fonts, parse_kernel
-from pre_w90_tool import main_features
+# pyw90
+from pyw90.lib.w90 import W90
+from pyw90.lib.job import Job
+from pyw90.lib.config import Config
+from pyw90.utility.utility import get_efermi, show_all_fonts, parse_kernel
+from pyw90.pre_w90_tool import main_features
 
 def get_args():
     r'''
