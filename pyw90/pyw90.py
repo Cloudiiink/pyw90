@@ -235,8 +235,7 @@ def eig(args):
         print(f'Unsupported mode: {args.mode}')
 
 # MAIN
-
-if __name__ == '__main__':
+def main_cli():
     print('                                   \n' \
           '         █▀▀█─█  █─░█──░█ ▄▀▀▄ █▀▀█\n' \
           '        ─█──█ █▄▄█ ░█░█░█ ▀▄▄█ █▄▀█\n' \
@@ -249,4 +248,8 @@ if __name__ == '__main__':
     args = get_args()
     args.path = os.path.join(os.getcwd(), args.path)
     args.func(args)
+
+if __name__ == '__main__':
+    main_cli()
+
 

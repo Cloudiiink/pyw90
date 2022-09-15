@@ -1,23 +1,40 @@
-[build-system]
-requires = ["pymatgen", "scipy>=1.8", "numpy", "PyYAML", "pandas", "matplotlib>=3.4"]
-build-backend = "setuptools.build_meta"
-
-[project]
+[tool.poetry]
 name = "pyw90"
 version = "1.0.0"
-authors = [
-  { name="En Wang (Cloudiiink)", email="wangenzj@gmail.com" },
-]
 description = "A tool interfaced to VASP and Wannier90 with projection analysis and automatically dis energy window optimization"
+authors = ["En Wang (Cloudiiink) <wangenzj@gmail.com>"]
+license = "GPL-3.0-only"
 readme = "README.md"
-license = { file="LICENSE" }
-requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Natural Language :: English",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-    "Operating System :: OS Independent",
+    "Operating System :: Unix",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics"
 ]
+keywords = ["python", "vasp", "wannier90", "tight-binding", "solid-state-physics"]
+homepage = "https://github.com/Cloudiiink/pyw90"
 
-[project.urls]
-"Homepage" = "https://github.com/Cloudiiink/pyw90"
+[tool.poetry.dependencies]
+python = ">=3.8,<3.12"
+pymatgen = "*"
+scipy = ">=1.8"
+numpy = ">=1.20.1"
+PyYAML = "*"
+pandas = "*"
+matplotlib = ">=3.4"
+
+[tool.poetry.scripts]
+pyw90 = "pyw90.pyw90:main_cli"
+
+[tools.poetry.urls]
 "Bug Tracker" = "https://github.com/Cloudiiink/pyw90/issues"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "aliyun"
+url = "https://mirrors.aliyun.com/pypi/simple/"
