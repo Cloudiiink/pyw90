@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
 
 class W90():
     r'''
-    This is main class of `Auto-Wannier90-Fit` and contains necessary `dis_windows` parameters for `Wannier90`. The class also offers methods including `dis_window` suggestion and evaluating the quality of Wannier Functions.
+    This is main class of `pyw90` and contains necessary `dis_windows` parameters for `Wannier90`. The class also offers methods including `dis_window` suggestion and evaluating the quality of Wannier Functions.
     '''
-    def __init__(self, config:Config=None, eig:str=None, win:str='wannier90.win', efermi=0, nwann=0, path:str='.', nbnds_excl:int=None, ndeg:int=1):
+    def __init__(self, config:Config=None, eig:str=None, win:str='wannier90.win', efermi=0, nwann=0, path:str='.', nbnds_excl:int=None, ndeg:int=1, eps: float=4.0e-3):
         '''
         Init
         
@@ -41,7 +41,7 @@ class W90():
         self.path = os.path.abspath(path)     # the directory containing the input file
         self.nbnds_excl = nbnds_excl
         self.ndeg   = ndeg      # denegeracy of bands, actually need to set 2 only meets Kramers degeneracy.
-        self.eps    = 4.0e-3     # tolerance for generate `dis_windows`
+        self.eps    = eps     # tolerance for generate `dis_windows`
         self.inf    = 1.0e+6     # evaluate self.inf when job meets illegal input `dis_windows`
         self._block = '█'
 
@@ -248,6 +248,32 @@ class W90():
         mask = np.logical_and(emin <= self.ir_ebands[0], self.ir_ebands[0] <= emax)
         return np.sum(mask, axis=1).min()
 
+    def suggest_win_table(self, nwann:int=None) -> pd.DataFrame:
+        r"""
+        Return `dis_win_min` and `dis_win_max` table base on the global gap location below the Fermi level with columns: dis_win_min, dis_win_max, i+1_min, i_max, Nleast, Nmost.
+
+        - Column `dis_win_max` represents the **lowest** dis_win_max for `dis_win_min`.
+        - Column `i+1_min` / `i_max` represents the band minimum / maximum near the gap.
+        - Column `Nleast`  / `Nmost` represents the least / most number of states inside `dis_win_min` and Fermi level.
+        """
+        nwann = nwann if nwann else self.nwann
+        idx = self.eband_min[1:] > self.eband_max[:-1] + self.eps
+        idx = np.nonzero(idx)[0]
+        win_min = (self.eband_min[idx+1] + self.eband_max[idx]) / 2
+        win_max, Nleast, Nmost = [], [], []
+        for e in win_min:
+            win_max.append(self.suggest_win_max(e, nwann))
+            Nleast.append(self.count_states_least((e, self.efermi)))
+            Nmost.append(self.count_states_most((e, self.efermi)))
+        df = pd.DataFrame(zip(win_min, win_max, self.eband_min[idx+1], self.eband_max[idx], Nleast, Nmost),  columns=['dis_win_min', 'dis_win_max', 'i+1_min', 'i_max', 'Nleast', 'Nmost'])
+        df = df[df['dis_win_min'] < self.efermi].sort_values('dis_win_min', ascending=False)
+
+        # assuming you want to fit at least 1 band above fermi level
+        if nwann > 0:
+            df = df[df['Nmost'] < nwann]
+
+        return df
+
     def suggest_win_max(self, emin:float, nwann:int=None) -> float:
         r'''
         Return lower limit of `dis_win_max` for given `dis_win_min` and number of WFs. If there is no `nwann` input, we will use `self.nwann` from `.yaml` config file instead.  The results are obtained from largest eigenvalues with its band index equal to `#WFs + i + 1`. `i` is the band index of first band with all energy larger than given `emin`.
@@ -290,6 +316,8 @@ class W90():
     def suggest_froz_max(self, emin:float, nwann:int=None) -> float:
         r'''
         Return upper limit of `dis_froz_max` for given `dis_froz_min` and `nwann`.
+
+        dis_windows require energy window containing states larger than number of target WFs. This will limit the dis_windows
 
         ### Parameters
 

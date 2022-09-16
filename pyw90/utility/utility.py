@@ -3,6 +3,8 @@ from numpy.typing import ArrayLike
 from typing import Callable
 import os, re, copy
 
+from pymatgen.core import structure
+
 def gaussian(x:ArrayLike, mid:float= 0, width:float=3, normalized:bool=False) -> ArrayLike:
     r'''
     Return values of Gaussian function with given input. Used as kernel function for band fitting quality evaluation. 
@@ -26,6 +28,49 @@ def unit(x:ArrayLike, mid:float=0, width:float=3) -> ArrayLike:
     '''
     res = np.abs(x-mid) < width
     return res.astype(float)
+
+def num2str(l: list[int], connect: str='-', sep :str='|') -> str:
+    r"""
+    Replace non negative continous number in list to formatted string.
+    
+    e.g. [1, 2, 3, 4, 5, 7, 8, 9, 11] -> '1-5|7-9|11'
+    """
+    l = sorted(set(l))
+    res = []
+    left = right = None
+    for v in l + [None]:
+        if right != None and v == right + 1:
+            right += 1
+        else:
+            if left != None:
+                s = str(left) if left == right else f'{left}{connect}{right}'
+                res.append(s)
+            left = right = v
+
+    return sep.join(res)
+
+def str2num(s: str, connect: str='-', sep: str='|') -> list[int]:
+    r"""
+    Replace formatted string to list
+    
+    e.g.'1-5|7-9|11' -> [1, 2, 3, 4, 5, 7, 8, 9, 11]
+    """
+    segs = s.strip().split(sep)
+    res = []
+    for seg in segs:
+        if connect in seg:
+            lseg = seg.strip().split(connect)
+            left, right = int(lseg[0]), int(lseg[-1])
+            res += list(range(left, right+1))
+        else:
+            res.append(int(seg))
+    return res
+
+def get_id_from_specie(struc: structure, specie: str) -> list[int]:
+    r"""
+    Return `struc` structure indices with `spcies`
+    """
+    return [i for i in range(len(struc)) if struc[i].specie.name == specie]
 
 def parse_kernel(kernel_str:str, mid:float, width:float) -> Callable[[ArrayLike],ArrayLike]:
     r'''
@@ -100,3 +145,7 @@ def get_efermi(args, from_file=False) -> float:
         m = re.match('.+ ((\-|\+)?\d+(\.\d+)?) .+', efermi_str)
         efermi = float(m.groups()[0])
     return efermi
+
+if __name__ == '__main__':
+    print(num2str([1, 2, 3, 4, 5, 7, 8, 9, 11]))
+    print(str2num('1-5|7-9|11'))

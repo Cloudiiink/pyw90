@@ -1,3 +1,11 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# Copyright (c) En Wang (Cloudiiink) <wangenzj@outlook.com>, SF10, IOP/CAS.
+# Distributed under the terms of GPLv3.Please see the LICENSE file that should have been included as part of this package.
+# For more information, please refer to https://github.com/Cloudiiink/pyw90.
+# All rights reserved.
+
 import subprocess
 import signal
 import os
@@ -72,12 +80,14 @@ def get_args():
     parser_pre.add_argument('--spin-down', action='store_true', default=False,
                             help="Specify the spin channel to `Spin.down`. Without this argument, the default one is `Spin.up`.")
     parser_pre.add_argument('-e', dest='erange', action='store', type=float,
-                            default=None, nargs=2,
+                            default=[-1e3, 1e3], nargs=2,
                             help='Energy range.')
     parser_pre.add_argument('--plot', default=False, action="store_true",
                             help='plot the dos distribution')
     parser_pre.add_argument('--extra', action='store', type=str, default='',
                             help='Extra input. In `template` mode and within extra input (basic, wann, band), we can choose one of the detailed parts to print. In `dos` mode and within extra input (`species`, `structure_id`, `orbital_id` list separated by ;), we can decide the projections for `Wannier90` input to analyze. See example in document for details.')
+    parser_pre.add_argument('--eps', action='store', type=float, default=4e-3,
+                            help="Tolerance for dis energy window suggestion. Default: 0.004")
     parser_pre.set_defaults(func=pre)
 
     # show distribution of eigenvalues
@@ -107,6 +117,8 @@ def get_args():
                             help='Energy range.')
     parser_eig.add_argument('--separate', default=False, action="store_true",
                             help='Calculate bands not separately.')
+    parser_eig.add_argument('--eps', action='store', type=float, default=4e-3,
+                            help="Tolerance for dis energy window suggestion. Default: 0.004")
     parser_eig.set_defaults(func=eig)
 
     args = parser.parse_args()
@@ -202,14 +214,19 @@ def eig(args):
     '''
     if args.config:
         config = Config(yaml_file='auto_w90_input.yaml')
-        w90 = W90(config=config, eig=args.eig, path=args.path, nbnds_excl=args.nbnds_excl)
+        w90 = W90(config=config, 
+                  eig=args.eig, 
+                  path=args.path, 
+                  nbnds_excl=args.nbnds_excl,
+                  eps=args.eps)
     else:
         w90 = W90(eig=args.eig,
                   path=args.path,
                   efermi=get_efermi(args), 
                   nbnds_excl=args.nbnds_excl, 
                   nwann=args.nwann, 
-                  ndeg=args.ndeg)
+                  ndeg=args.ndeg,
+                  eps=args.eps)
 
     if args.mode[0].lower() == 'p': # plot
         w90.plot_eigenval(erange=args.erange, separate=args.separate,
@@ -223,14 +240,20 @@ def eig(args):
         print('For `dis_froz_min` and `dis_froz_max` settings:')
         print(f'    {w90.count_states_most(args.erange)} states at most in {args.erange} (At some kpoints).')
     elif args.mode[0].lower() == 's': # suggest
+        # suggest dis_win_min and dis_win_max
+        print('`dis_win_min` and `dis_win_max` Table:\n')
+        print('Column `dis_win_max` represents the **lowest** dis_win_max for `dis_win_min`')
+        print('Column `i+1_min` / `i_max` represents the band minimum / maximum near the gap')
+        print('Column `Nleast`  / `Nmost` represents the least / most number of states inside `dis_win_min` and Fermi level')
+        print(f'Fermi level: {w90.efermi}\n')
+        df = w90.suggest_win_table()
+        print(df)
+
         # suggest frozen window with given energy interval
-        print(f'`dis_froz_min` and `dis_froz_max` Table:')
+        print(f'\n`dis_froz_min` and `dis_froz_max` Table:')
         df = w90.get_dis_froz_df(args.erange)
         if len(df) > 0:
             print(df)
-        # dis_windows require energy window containing states larger than number of target WFs. This will also generate some constraints for dis_windows
-        dis_win_max = w90.suggest_win_max(args.erange[0])
-        print(f'\nLowest `dis_win_max` for {args.erange[0]}: {dis_win_max}')
 
     else:
         print(f'Unsupported mode: {args.mode}')

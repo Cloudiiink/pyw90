@@ -1,3 +1,11 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# Copyright (c) En Wang (Cloudiiink) <wangenzj@outlook.com>, SF10, IOP/CAS.
+# Distributed under the terms of GPLv3.Please see the LICENSE file that should have been included as part of this package.
+# For more information, please refer to https://github.com/Cloudiiink/pyw90.
+# All rights reserved.
+
 import argparse
 import time, os
 from scipy.optimize import minimize

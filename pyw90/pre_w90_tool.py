@@ -1,3 +1,11 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# Copyright (c) En Wang (Cloudiiink) <wangenzj@outlook.com>, SF10, IOP/CAS.
+# Distributed under the terms of GPLv3.Please see the LICENSE file that should have been included as part of this package.
+# For more information, please refer to https://github.com/Cloudiiink/pyw90.
+# All rights reserved.
+
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.typing import ArrayLike
@@ -14,10 +22,6 @@ from pymatgen.electronic_structure.core import Orbital, Spin
 from pymatgen.electronic_structure.dos import CompleteDos
 from pymatgen.core import structure
 
-# pyw90
-from pyw90.utility.utility import get_efermi
-from pyw90.lib.w90 import W90
-
 # Calculate the percentage of given sites and given orbitals inside the energy interval
 # from scipy.interpolate import interp1d
 from scipy.interpolate import splrep, splev
@@ -28,6 +32,12 @@ from functools import reduce
 
 import matplotlib
 matplotlib.use('Agg')
+
+# pyw90
+from pyw90.utility.utility import get_efermi
+from pyw90.utility.utility import num2str, str2num, get_id_from_specie
+from pyw90.lib.w90 import W90
+from pyw90.lib.dos import DOS
 
 def dos_distribute(e: ArrayLike, dos: ArrayLike,
                    window: Tuple[float, float]) -> float:
@@ -202,13 +212,13 @@ def orb_string(orb_list: list[str]) -> str:
             orb_string_list.append(o)
     return ';'.join([s for s in orb_string_list])
 
-def w90_string(res_df: pd.DataFrame, structure: structure) -> str:
+def w90_string(res_df: pd.DataFrame, struc: structure) -> str:
     r"""
     Return the projection card for `Wannier90`
 
     ### Parameters
-    `res_df`: Obtained from `dos_analysis_df` with projection given by: `species`, `site` and `orb`
-    `strcuture`: Crystal structure
+    - `res_df`: Obtained from `dos_analysis_df` with **simplified** projection given by: `species`, `site` and `orb`
+    - `struc`: Crystal structure
     
     ### Note
     We use `Wannier90`==1.2 to interface with `VASP`. So the format for projection card is very limited. 
@@ -223,11 +233,42 @@ def w90_string(res_df: pd.DataFrame, structure: structure) -> str:
         if row['site'] == -1:
             w90_string_list.append(f"{row['species']}:{orb_string(row['orb'])}")
         else:
-            site_string = ','.join([f"{i:.6f}" for i in structure[row['site']].frac_coords])
+            site_string = ','.join([f"{i:.6f}" for i in struc[row['site']].frac_coords])
             w90_string_list.append(f"f={site_string}:{orb_string(row['orb'])}") # !!! f=... ? or c=...?
-    print('\n'.join([s for s in w90_string_list]))
+    return '\n'.join([s for s in w90_string_list])
 
-def dos_given_site_orb(dos_data_total: pd.DataFrame, erange: Tuple[float, float], key_string: str, spin: Spin=Spin.up,
+def extra_string(res_df: pd.DataFrame, struc: structure,
+                 connect: str='-', sep :str='|') -> str:
+    r"""
+    Convert `res_df` with simplified projection information to formatted string for `--extra`` argument to input for pyw90.
+
+    e.g. 'Ga,0,1-3;As,1,1-3|5'
+    """
+    res = []
+    for spec, site, orbs in zip(res_df.species, res_df.site, res_df.orb):
+    # we only merge all sites having the same orbital selection with -1
+    # so the `site` column should be `integer`
+        orb_res = []
+        for orb in orbs:
+            orb = orb.strip()
+            if DOS.is_orbital_type(orb):
+                orb_res += DOS.get_orbitals_from_type(orb)
+            elif DOS.is_orbital(orb):
+                orb_res.append(DOS.get_orbital(orb))
+            else:
+                raise ValueError(f'Unknown Orbital: {orb}')
+        orb_str = num2str([orb.value for orb in orb_res],
+                          connect=connect, sep=sep)
+
+        if site == -1:
+            site = get_id_from_specie(struc, spec)
+            site = num2str(site, connect=connect, sep=sep)
+
+        res.append(f'{spec},{site},{orb_str}')
+    return ';'.join(res)
+
+def dos_given_site_orb(dos_data_total: pd.DataFrame, erange: Tuple[float, float], 
+                       key_string: str, spin: Spin=Spin.up,
                        orb_names: list[str]=['s', 'py', 'pz', 'px', 'dxy', 'dyz', 'dz2', 'dxz', 'dx2']) -> float:
     r"""
     Return DOS contribution of `erange` for site and orbital from `key_string` (e.g. `C_1_pz`) via interpolation.
@@ -251,11 +292,8 @@ def select_str2list(s: str, orb_names: list[str]=['s', 'py', 'pz', 'px', 'dxy', 
     r"""
     Convert input string to `set` with `key_string` format.
     
-    The default deliminater is `;` and we can use `1-4` to represent `1,2,3,4` both in site_id and orbital_id.
+    The default deliminater is `;` and we can use `1-4|6` to represent `1,2,3,4,6` both in site_id and orbital_id.
     """
-    def num2list(s):
-        l, r = map(int, s.split('-')) if '-' in s else [int(s)] * 2
-        return list(range(l, r + 1, 1))
 
     if len(s) == 0:
         return []
@@ -263,7 +301,7 @@ def select_str2list(s: str, orb_names: list[str]=['s', 'py', 'pz', 'px', 'dxy', 
     res = []
     for l in s.split(';'):
         spec, pos, orb = l.split(',')
-        pos, orb = num2list(pos), num2list(orb) 
+        pos, orb = str2num(pos), str2num(orb) 
         for p in pos:
             for o in orb:
                 res.append(f'{spec}_{p}_{orb_names[o]}')
@@ -366,7 +404,7 @@ def get_args():
     '''
     CML parser.
     '''
-    parser = argparse.ArgumentParser(description="Pre analysis before Wannier90 Interpolation. dos: python pre_w90_tool.py dos --plot -e -4 7 --extra 'Bi,4-7,0-3;F,8-23,1-3'", add_help=True)
+    parser = argparse.ArgumentParser(description="Pre analysis before Wannier90 Interpolation. dos: pyw90 pre dos --plot -e -4 7 --extra 'Bi,4-7,0-3;F,8-23,1-3'", add_help=True)
 
     parser.add_argument('mode', help='Mode: kpath, band, template, dos')
     parser.add_argument('--path', default='.',
@@ -380,12 +418,14 @@ def get_args():
     parser.add_argument('--spin-down', action='store_true', default=False,
                         help="Specify the spin channel to `Spin.down`. Without this argument, the default one is `Spin.up`.")
     parser.add_argument('-e', dest='erange', action='store', type=float,
-                        default=None, nargs=2,
+                        default=[-1e3, 1e3], nargs=2,
                         help='Energy range.')
     parser.add_argument('--plot', default=False, action="store_true",
                         help='plot the dos distribution')
     parser.add_argument('--extra', action='store', type=str, default='',
                         help='Extra input.')
+    parser.add_argument('--eps', action='store', type=float, default=4e-3,
+                        help="Tolerance for dis energy window suggestion. Default: 0.004")
     return parser.parse_args()
 
 def main_features(args):
@@ -412,20 +452,23 @@ def main_features(args):
         efermi = get_efermi(args, from_file=True)
         spin   = Spin.down if args.spin_down else Spin.up
         lb     = args.lb
-
+        left, right = min(args.erange), max(args.erange)
+    
         vasprun = Vasprun(os.path.join(path, "vasprun.xml"))
+        dos_data_total = vasprun.complete_dos       # get dos data
+
         print(f"\nReading vasprun.xml file from\n    `{abspath(os.path.join(path, 'vasprun.xml'))}` \n" \
                "for DOS analysis...")
-        print(f"\nFermi level: {efermi}")
+        print(f"    Fermi level : {efermi:.5f} eV")
+        print(f"    DOS Gap     : {dos_data_total.get_gap():.5f} eV")
 
-        left, right = min(args.erange), max(args.erange)
         if args.sub_fermi:
             left, right = left + efermi, right + efermi
             print(f"\nCalculated DOS Energy Range: {left}, {right}")
         else:
             print(f"\nCalculated DOS Energy Range: {left}, {right}")
         erange = left, right
-        dos_data_total = vasprun.complete_dos       # get dos data
+        
         structure = dos_data_total.structure
         dos_df = gen_dos_df(dos_data_total, left, right, spin=spin)
         
@@ -439,7 +482,9 @@ def main_features(args):
             print("\nSelected Orbitals: ")
             print(simple_res_df)
             print("\nWannier90 Projection:")
-            w90_string(simple_res_df, structure)
+            print(w90_string(simple_res_df, structure))
+            print("\npyw90 --extra input:")
+            print(extra_string(simple_res_df, structure))
 
             if args.plot:
                 selected = select_str2list(args.extra)
@@ -454,7 +499,8 @@ def main_features(args):
                       efermi=efermi, # get_efermi(args, from_file=True),
                       nbnds_excl=0,
                       nwann=nwann,
-                      ndeg=1)
+                      ndeg=1,
+                      eps=args.eps)
 
             dis_froz_df = w90.get_dis_froz_df(erange)
             dis_tdos_l, dis_pdos_l, percent_l = [], [], []
