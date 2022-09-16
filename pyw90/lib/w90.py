@@ -118,6 +118,50 @@ class W90():
             r = re.match('dis_win_min\s*=\s*(-?\d+\.\d+)', l)
             if r:
                 self.win_min = eval(r.group(1))
+    
+    @staticmethod
+    def win_template(flag:str):
+        r"""
+        Print template for `Wannier90`.
+
+        `flag`: `wann`, `band` and `basic`
+        """
+        if flag == 'wann':
+            print('###############\n' \
+                '#     W90     #\n' \
+                '###############\n' \
+                'dis_win_max       =  0.0\n' \
+                'dis_froz_max      =  0.0\n' \
+                'dis_froz_min      = -5.0\n' \
+                'dis_win_min       = -5.0\n' \
+                '\n'                         \
+                'num_iter          = 1000\n' \
+                'num_print_cycles  =   40\n' \
+                'dis_num_iter      = 5000\n' \
+                'dis_mix_ratio     =  1.0\n')
+        elif flag == 'band':
+            print('###############\n' \
+                '#  Band Plot  #\n' \
+                '###############   # restart = plot\n' \
+                'write_hr          = true\n' \
+                'bands_plot        = true\n' \
+                'bands_num_points  = 151 \n' \
+                'bands_plot_format = gnuplot\n' \
+                '\n' \
+                'Begin Kpoint_Path\n' \
+                'End Kpoint_Path\n')
+        elif flag == 'basic':
+            print('num_wann  = 8\n' \
+                '# num_bands = 15\n' \
+                '\n' \
+                'begin projections\n' \
+                'Ga:l=0;l=1\n' \
+                'As:l=0;l=1\n' \
+                'end projections\n' \
+                '\n' \
+                '# spinors = .true.\n')
+        else:
+            print('Unknown flag: ', flag)
 
     def plot_eigenval(self, erange:Tuple[float,float]=None, separate:bool=False, savefig:str='eigenval_dis.png'):
         r'''
