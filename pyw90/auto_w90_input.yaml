@@ -27,11 +27,10 @@ local: False
 # ! IMPORTANT: Make sure you have added `wannier90.x` to your `$PATH` if you want to run as following
 # single core
 localrun: wannier90.x wannier90
-# uncomment to use absolute path
 # localrun: /path/to/your/wannier90.x wannier90
 
 # Parallel version
-# localrun: mpirun -np 10 wannier90.x wannier90
+# localrun: mpirun -np 10 /path/to/your/wannier90.x wannier90
 
 # band structure
 # the fermi level of this system

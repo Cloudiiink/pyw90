@@ -18,7 +18,9 @@ class W90():
     r'''
     This is main class of `pyw90` and contains necessary `dis_windows` parameters for `Wannier90`. The class also offers methods including `dis_window` suggestion and evaluating the quality of Wannier Functions.
     '''
-    def __init__(self, config:Config=None, eig:str=None, win:str='wannier90.win', efermi=0, nwann=0, path:str='.', nbnds_excl:int=None, ndeg:int=1, eps: float=4.0e-3):
+    def __init__(self, config:Config=None, eig:str=None, win:str='wannier90.win', 
+                 vasp_bnd="bnd.dat", seedname="wannier90",
+                 efermi=0, nwann=0, path:str='.', nbnds_excl:int=None, ndeg:int=1, eps: float=4.0e-3):
         '''
         Init
         
@@ -29,18 +31,23 @@ class W90():
         '''
         self.config = config
         if self.config != None:
-            self._win   = config.win
-            self.efermi = config.efermi
-            self.nwann  = config.nwann
-            self.path   = config.path     # the directory containing the input file
+            self.win      = config.win
+            self.efermi   = config.efermi
+            self.nwann    = config.nwann
+            self.path     = config.path     # the directory containing the input file
+            self.vasp_bnd = config.vasp_bnd
+            self.w90_bnd  = config.w90_bnd
+            self.seedname = self.win[:-4]
         else:
-            self._win   = win
-            self.efermi = efermi
-            self.nwann  = nwann
-            self.path   = os.path.abspath(path)     # the directory containing the input file
+            self.win      = win
+            self.efermi   = efermi
+            self.nwann    = nwann
+            self.path     = os.path.abspath(path)     # the directory containing the input file
+            self.vasp_bnd = vasp_bnd
+            self.seedname = seedname
+            self.w90_bnd  = seedname + '_band.dat'
 
-        self._sys   = self._win[:-4]
-        self.eig = self._sys + '.eig' if eig == None else eig
+        self.eig = self.seedname + '.eig' if eig == None else eig
         self.nbnds_excl = nbnds_excl
         self.ndeg   = ndeg      # denegeracy of bands, actually need to set 2 only meets Kramers degeneracy.
         self.eps    = eps     # tolerance for generate `dis_windows`
@@ -51,7 +58,7 @@ class W90():
 
     def read_eigenval(self):
         r'''
-        Read band energies from VASP EIGENVAL file or `self._sys.eig` file.
+        Read band energies from VASP EIGENVAL file or `self.seedname.eig` file.
         '''
         if self.eig[-3:] == 'eig':
             self.nspin = 1
@@ -99,9 +106,9 @@ class W90():
 
     def read_wannier90_win(self):
         r'''
-        Read parameters from `self._win` file.
+        Read parameters from `self.win` file.
         '''
-        with open(os.path.join(self.path, self._win)) as f:
+        with open(os.path.join(self.path, self.win)) as f:
             dat = [line.strip() for line in f if line.strip()]
 
         for l in dat:
@@ -424,9 +431,9 @@ class W90():
 
     def edit_win(self, dis_dict:Dict[str,float]):
         r'''
-        Edit `self._sys.win` file with input dis windows from `dis_dict`.
+        Edit `self.seedname.win` file with input dis windows from `dis_dict`.
         '''
-        with open(os.path.join(self.path, self._win), 'r+') as file:
+        with open(os.path.join(self.path, self.win), 'r+') as file:
             lines = file.readlines()
 
         for idx, line in enumerate(lines):
@@ -436,7 +443,7 @@ class W90():
                 if m:
                     lines[idx] = '{0:<17s} = {1}\n'.format(m.group(0), dis_dict[key])
 
-        with open(os.path.join(self.path, self._win), 'w+') as file:
+        with open(os.path.join(self.path, self.win), 'w+') as file:
             file.writelines(lines)
 
     def update_bands(self):
@@ -449,8 +456,8 @@ class W90():
         self.w2v_ratio      : ratio of k-distance. Theoretically, it should be 2 * pi or 1
         self.nbnds_excl     : Number of VASP bands below the lowest Wannier90 band
         '''
-        self.vkk, self.vee = self._parse_dat(os.path.join(self.path, self.config.vasp_bnd))
-        self.wkk, self.wee = self._parse_dat(os.path.join(self.path, self.config.w90_bnd))
+        self.vkk, self.vee = self._parse_dat(os.path.join(self.path, self.vasp_bnd))
+        self.wkk, self.wee = self._parse_dat(os.path.join(self.path, self.w90_bnd))
         self.w2v_ratio = np.max(self.vkk) / np.max(self.wkk)   # Theoretically, it should be 2 * pi or 1
 
         # Use eigenvalues in first k-point to align W90 data and VASP data
@@ -588,7 +595,7 @@ class W90():
         r'''
         Return spread message from `.wout` file.
         '''
-        conv_str = os.popen(f"grep CONV {os.path.join(self.path, self._sys +'.wout')}").read().split('\n')
+        conv_str = os.popen(f"grep CONV {os.path.join(self.path, self.seedname +'.wout')}").read().split('\n')
         if len(conv_str) > 4:
             conv = conv_str[3:-1]
             spread = np.array([eval(c.split()[3]) for c in conv])
@@ -690,7 +697,7 @@ class W90():
         len_unit_spread = max(spread / 20)
         len_spread = (spread / len_unit_spread).astype(int)
         N2 = (len(spread) + 1)// 2
-        lines.append(f"Spread (Ang^2) in `{self._sys}.wout`:".ljust(80, ' '))
+        lines.append(f"Spread (Ang^2) in `{self.seedname}.wout`:".ljust(80, ' '))
         lines.append(f"+-----+{'-'*32}++-----+{'-'*32}+")
         lines.append(f"|   i |{' Spread':32s}||   i |{' Spread':32s}|")
         lines.append(f"+-----+{'-'*32}++-----+{'-'*32}+")
@@ -731,7 +738,7 @@ class W90():
         lines.append(f"+-----+{'-'*32}++-----+{'-'*32}+")
         lines.append(f"|   i |{' MAX DIFF (meV)':32s}||   i |{' AVERAGE DIFF (meV)':32s}|")
         lines.append(f"+-----+{'-'*32}++-----+{'-'*32}+")
-        for i in range(self.nwann):
+        for i in range(len(self.dEs)):
             max_str_i = f'{self._block * len_dEs_max[i]} {dEs_max[i]:.2f}'
             ave_str_i = f'{self._block * len_dEs_ave[i]} {dEs[i]:.2f}'
             lines.append(f'|{i+1:4d} |{max_str_i:<32s}||{i+1:4d} |{ave_str_i:<32s}|')

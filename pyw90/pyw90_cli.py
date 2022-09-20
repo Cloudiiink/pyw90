@@ -24,77 +24,14 @@ def get_args():
     r'''
     CML Parser
     '''
-    parser = argparse.ArgumentParser(description='python Command-line toolbox for VASP and Wannier90 interface with utility')
-    subparsers = parser.add_subparsers(help='Main features')
-
-    # auto-wannier90-fit
+    parser = argparse.ArgumentParser(description='python Command-line toolbox for VASP and Wannier90 interface with utility. You can also use -h to display the submenu help message. e.g. pyw90 pre -h')
+    subparsers  = parser.add_subparsers(help='Main features')
+    parser_eig  = subparsers.add_parser('eig' , help='Show distribution of eigenvalues.')
+    parser_pre  = subparsers.add_parser('pre' , help='(Pre)-analysis before `Wannier90` Interpolation.')
     parser_auto = subparsers.add_parser('auto', help='(Auto Wannier90 Fit) Using minimize method to choose the most suitable dis energy windows.')
-    parser_auto.add_argument('mode', 
-                             help='Mode: run, term(inate), input. Only first character is recognized.')
-    parser_auto.add_argument('--path', default='.',
-                             help='The path of working dir. Default: .')
-    parser_auto.add_argument('--pid', default=None, type=int,
-                             help='PID to terminate.')
-    parser_auto.set_defaults(func=auto)
-
-    # compare VASP & Wannier90 result
-    parser_cmp = subparsers.add_parser('cmp', help='(Comparison) Show difference between VASP bands and Wannier90 bands via plotting and report. `bnd.dat` for VASP band data in `p4vasp` format and `wannier90_band.dat`, `wannier90_band.labelinfo.dat`, and `wannier90.wout` are required for plotting and analysis.')
-    parser_cmp.add_argument('name',
-                            help='name of system')
-    parser_cmp.add_argument('--config', action='store_true', default=False,
-                            help='Read input from config file `auto_w90_input.yaml` directly. Default: False')
-    parser_cmp.add_argument('--path', default='.',
-                            help='The path of working dir. Default: .')
-    parser_cmp.add_argument('--efermi', default=None, 
-                            help='Fermi level. Default value is generated from `vasprun.xml`.')
-    parser_cmp.add_argument('--vasp', default='bnd.dat',
-                            help="location of VASP band file in `p4vasp` format. Default: bnd.dat")
-    parser_cmp.add_argument('--ylim', default=None, nargs=2, type=float,
-                            help="Energy bound for plot. Since the Fermi level has been shift to 0 during the plotting, please mind your input. Default: [E_w90.min - 1, E_w90.max + 1]")
-    parser_cmp.add_argument('--kernel', default='unit,0,1',
-                            help="kernel function for evaluating diff with formatted input: type, middle, width and **the Fermi level is not subtracted from eigenvalues**. There are two type of kernel function: `unit` and `gaussian`. Defalut: unit,0,1")
-    parser_cmp.add_argument('--show-fonts', default=False, action="store_true",
-                            help="Show all availabel font families can be used in `rcParams`")
-    parser_cmp.add_argument('--fontfamily', default='Open Sans',
-                            help="Set font family manually. Default: Open Sans")
-    parser_cmp.add_argument('--fontsize', default=18, type=int,
-                            help="Set font size manually. Default: 18")
-    parser_cmp.add_argument("--no-spread", default=False, action="store_true",
-                            help="Don't plot spreading")
-    parser_cmp.add_argument("--no-quality", default=False, action="store_true",
-                            help="Don't show quality of fitting")
-    parser_cmp.add_argument("--quiet", default=False, action="store_true",
-                            help="Equal to --no-spreading --no-quality")
-    parser_cmp.set_defaults(func=cmp)
-
-    # pre-process of VASP data
-    parser_pre = subparsers.add_parser('pre', help='(Pre)-analysis before `Wannier90` Interpolation.')
-    parser_pre.add_argument('mode', help='Mode: kpath, band, template, dos')
-    parser_pre.add_argument('--path', default='.',
-                            help='The path of working dir. Default: .')
-    parser_pre.add_argument('-e', dest='erange', action='store', type=float,
-                            default=[-1e3, 1e3], nargs=2,
-                            help='Energy range.')
-    parser_pre.add_argument('--lb', action='store', type=float, default=0.1,
-                            help='Lower bound for selected orbital / max single orbital. default: 0.1')
-    parser_pre.add_argument('--rm-fermi', action='store_true', default=False,
-                            help="Whether or not the input `erange` has removed the Fermi energy is indicated by this flag. Default: False")
-    parser_pre.add_argument('--extra', action='store', type=str, default='',
-                            help='Extra input. In `template` mode and within extra input (basic, wann, band), we can choose one of the detailed parts to print.' \
-                                 'In `dos` mode and within extra input (`species`, `structure_id`, `orbital_id` list separated by ;), ' \
-                                 'we can treat input as projections for `Wannier90` input to suggest dis frozen energy. Details can be found in the document.')
-    parser_pre.add_argument('--spin-down', action='store_true', default=False,
-                            help="Specify the spin channel to `Spin.down`. Without this argument, the default one is `Spin.up`.")
-    parser_pre.add_argument('--plot', default=False, action="store_true",
-                            help='plot the dos distribution')
-    parser_pre.add_argument('--eps', action='store', type=float, default=4e-3,
-                            help="Tolerance for dis energy window suggestion. Default: 0.004")
-    parser_pre.add_argument('--deg', action='store', type=int, default=1,
-                            help='Degeneracy of bands. Default: 1')
-    parser_pre.set_defaults(func=pre)
-
+    parser_cmp  = subparsers.add_parser('cmp' , help='(Comparison) Show difference between VASP bands and Wannier90 bands via plotting and report. `bnd.dat` for VASP band data in `p4vasp` format and `wannier90_band.dat`, `wannier90_band.labelinfo.dat`, and `wannier90.wout` are required for plotting and analysis.')
+    
     # show distribution of eigenvalues
-    parser_eig = subparsers.add_parser('eig', help='Show distribution of eigenvalues.')
     parser_eig.add_argument('mode', help='Mode: report, plot, count, suggest')
     parser_eig.add_argument('-e', dest='erange', action='store', type=float,
                             default=None, nargs=2,
@@ -126,6 +63,71 @@ def get_args():
                             help="Tolerance for dis energy window suggestion. Default: 0.004")
     parser_eig.set_defaults(func=eig)
 
+    # pre-process of VASP data
+    parser_pre.add_argument('mode', help='Mode: kpath, band, template, dos')
+    parser_pre.add_argument('--path', default='.',
+                            help='The path of working dir. Default: .')
+    parser_pre.add_argument('-e', dest='erange', action='store', type=float,
+                            default=[-1e3, 1e3], nargs=2,
+                            help='Energy range.')
+    parser_pre.add_argument('--lb', action='store', type=float, default=0.1,
+                            help='Lower bound for selected orbital / max single orbital. default: 0.1')
+    parser_pre.add_argument('--rm-fermi', action='store_true', default=False,
+                            help="Whether or not the input `erange` has removed the Fermi energy is indicated by this flag. Default: False")
+    parser_pre.add_argument('--extra', action='store', type=str, default='',
+                            help='Extra input. In `template` mode and within extra input (basic, wann, band), we can choose one of the detailed parts to print.' \
+                                 'In `dos` mode and within extra input (`species`, `structure_id`, `orbital_id` list separated by ;), ' \
+                                 'we can treat input as projections for `Wannier90` input to suggest dis frozen energy. Details can be found in the document.')
+    parser_pre.add_argument('--spin-down', action='store_true', default=False,
+                            help="Specify the spin channel to `Spin.down`. Without this argument, the default one is `Spin.up`.")
+    parser_pre.add_argument('--plot', default=False, action="store_true",
+                            help='plot the dos distribution')
+    parser_pre.add_argument('--eps', action='store', type=float, default=4e-3,
+                            help="Tolerance for dis energy window suggestion. Default: 0.004")
+    parser_pre.add_argument('--deg', action='store', type=int, default=1,
+                            help='Degeneracy of bands. Default: 1')
+    parser_pre.set_defaults(func=pre)
+
+    # auto-wannier90-fit
+    parser_auto.add_argument('mode', 
+                             help='Mode: run, term(inate), input. Only first character is recognized.')
+    parser_auto.add_argument('--path', default='.',
+                             help='The path of working dir. Default: .')
+    parser_auto.add_argument('--pid', default=None, type=int,
+                             help='PID to terminate.')
+    parser_auto.set_defaults(func=auto)
+
+    # compare VASP & Wannier90 result
+    parser_cmp.add_argument('name',
+                            help='name of system')
+    parser_cmp.add_argument('--config', action='store_true', default=False,
+                            help='Read input from config file `auto_w90_input.yaml` directly. Default: False')
+    parser_cmp.add_argument('--path', default='.',
+                            help='The path of working dir. Default: .')
+    parser_cmp.add_argument('--efermi', default=None, 
+                            help='Fermi level. Default value is generated from `vasprun.xml`.')
+    parser_cmp.add_argument('--vasp', dest='vasp', default='bnd.dat',
+                            help="Path of VASP band file in `p4vasp` format. Default: bnd.dat")
+    parser_cmp.add_argument('--seedname', dest='seedname', default='wannier90',
+                            help="Seedname of Wannier90 input. Default: wannier90")
+    parser_cmp.add_argument('--ylim', default=None, nargs=2, type=float,
+                            help="Energy bound for plot. Since the Fermi level has been shift to 0 during the plotting, please mind your input. Default: [E_w90.min - 1, E_w90.max + 1]")
+    parser_cmp.add_argument('--kernel', default='unit,0,1',
+                            help="Formatted input: type, middle, width (Defalut: unit,0,1). Kernel functions are classified into two types: `unit` and `gaussian`. **The Fermi level is not subtracted from eigenvalues when using the kernel function to evaluate difference**.")
+    parser_cmp.add_argument('--show-fonts', default=False, action="store_true",
+                            help="Show all availabel font families can be used in `rcParams`")
+    parser_cmp.add_argument('--fontfamily', default='Open Sans',
+                            help="Set font family manually. Default: Open Sans")
+    parser_cmp.add_argument('--fontsize', default=18, type=int,
+                            help="Set font size manually. Default: 18")
+    parser_cmp.add_argument("--no-spread", default=False, action="store_true",
+                            help="Don't plot spreading")
+    parser_cmp.add_argument("--no-quality", default=False, action="store_true",
+                            help="Don't show quality of fitting")
+    parser_cmp.add_argument("--quiet", default=False, action="store_true",
+                            help="Equal to --no-spreading --no-quality")
+    parser_cmp.set_defaults(func=cmp)
+
     args = parser.parse_args()
     return args
 
@@ -135,6 +137,7 @@ def auto(args):
     '''
     path    = os.path.dirname(os.path.realpath(__file__))
     environ = dict(os.environ)
+    
     if args.mode.lower()[0] == 'r':  # run
         log  = os.path.join(args.path, 'auto_w90_output.txt')
         p = subprocess.Popen([sys.executable, os.path.join(path, 'auto_w90_fit.py'), '--path', args.path, "--environ", str(environ)],
@@ -144,9 +147,25 @@ def auto(args):
                                stderr = open(log, 'w'),
                                start_new_session=True)
         bc.cprint(bc.BLUE, f'Auto-W90-Fit run with PID: {p.pid}')
+
     elif args.mode.lower()[0] == 'i':   # input
+        input_path  = os.path.join(path, 'auto_w90_input.yaml')
+        target_path = os.path.abspath(args.path)
+        target_file = os.path.join(target_path, 'auto_w90_input.yaml')
         bc.cprint(bc.BLUE, f'Create example input file for `auto` menu at input folder')
-        shutil.copy(os.path.join(path, 'auto_w90_input.yaml'), os.getcwd())
+        bc.cprint(bc.BLUE, f'    {target_path}\n')
+        if os.path.exists(target_file):
+            bc.cprint(bc.RED, 'There are already input file for pyw90. Do you want to overwrite it?')
+            bc.cprint(bc.RED, 'Input Y(es) / N(o)')
+            usr_input = input()
+            if usr_input.lower()[0] == 'y':
+                shutil.copy(input_path, args.path)
+                return
+            else:
+                return
+
+        shutil.copy(input_path, args.path)
+
     elif args.mode.lower()[0] == 't':   # terminate
         bc.cprint(bc.BLUE, f'Kill the job with PID {args.pid} as listed')
 
@@ -186,27 +205,31 @@ def cmp(args):
         return
 
     if args.config:
-        config = Config(yaml_file='auto_w90_input.yaml')
+        bc.cprint(bc.BLUE, f'Reading Data and config file from {os.path.relpath(args.path)}')
+        config = Config(yaml_file=os.path.join(args.path, 'auto_w90_input.yaml'))
         w90 = W90(config=config, path=args.path)
         kernel = config.kernel
     else:
+        bc.cprint(bc.BLUE, f'Reading Data from {os.path.relpath(args.path)}')
         efermi = get_efermi(args)
-        w90 = W90(path=args.path, efermi=efermi)
+        w90 = W90(path=args.path, efermi=efermi, vasp_bnd=args.vasp, seedname=args.seedname)
         l = args.kernel.split(',')
         kernel_str, mid, width = l[0], float(l[1]), float(l[2])
         kernel = parse_kernel(kernel_str, mid, width)
     
-    bc.cprint(bc.BLUE, f'Reading Data from {os.path.relpath(args.path)}')
-
+    bc.cprint(bc.BLUE, f"The output figure should be stored at")
+    bc.cprint(bc.BLUE, f"    {os.path.join(args.path, args.name+'_VASP_W90_cmp.png')}")
     w90.plot_cmp_vasp_w90(args.name, ylim=args.ylim,
                           font=args.fontfamily, size=args.fontsize)
 
     if not args.no_quality and not args.quiet:
         res = w90.evaluate(kernel=kernel)
-        bc.cprint(bc.RED, f'Final Quality: {res}')
+        bc.cprint(bc.BLUE, f'Final Quality {res:.6f} meV with dEs for each bands')
         w90.show_dEs(update=True, terminal=True)
 
     if not args.no_spread and not args.quiet:
+        print()
+        bc.cprint(bc.BLUE, f'Spreading for each iteration is displayed below')
         w90.show_spread(update=True, terminal=True)
 
 def pre(args):
