@@ -32,7 +32,7 @@ def get_args():
     parser_auto.add_argument('mode', 
                              help='Mode: run, term(inate), input. Only first character is recognized.')
     parser_auto.add_argument('--path', default='.',
-                             help='The path of working dir. Please use relative path. Default: .')
+                             help='The path of working dir. Default: .')
     parser_auto.add_argument('--pid', default=None, type=int,
                              help='PID to terminate.')
     parser_auto.set_defaults(func=auto)
@@ -44,7 +44,7 @@ def get_args():
     parser_cmp.add_argument('--config', action='store_true', default=False,
                             help='Read input from config file `auto_w90_input.yaml` directly. Default: False')
     parser_cmp.add_argument('--path', default='.',
-                            help='The path of working dir. Please use relative path. Default: .')
+                            help='The path of working dir. Default: .')
     parser_cmp.add_argument('--efermi', default=None, 
                             help='Fermi level. Default value is generated from `vasprun.xml`.')
     parser_cmp.add_argument('--vasp', default='bnd.dat',
@@ -71,24 +71,26 @@ def get_args():
     parser_pre = subparsers.add_parser('pre', help='(Pre)-analysis before `Wannier90` Interpolation.')
     parser_pre.add_argument('mode', help='Mode: kpath, band, template, dos')
     parser_pre.add_argument('--path', default='.',
-                            help='The path of working dir. Please use relative path. Default: .')
-    parser_pre.add_argument('--deg', action='store', type=int, default=1,
-                            help='Degeneracy of bands. Default: 1')
-    parser_pre.add_argument('--rm-fermi', action='store_true', default=False,
-                            help="Whether or not the input `erange` has removed the Fermi energy is indicated by this flag. Default: False")
-    parser_pre.add_argument('--lb', action='store', type=float, default=0.1,
-                            help='Lower bound for selected orbital / max single orbital. default: 0.1')
-    parser_pre.add_argument('--spin-down', action='store_true', default=False,
-                            help="Specify the spin channel to `Spin.down`. Without this argument, the default one is `Spin.up`.")
+                            help='The path of working dir. Default: .')
     parser_pre.add_argument('-e', dest='erange', action='store', type=float,
                             default=[-1e3, 1e3], nargs=2,
                             help='Energy range.')
+    parser_pre.add_argument('--lb', action='store', type=float, default=0.1,
+                            help='Lower bound for selected orbital / max single orbital. default: 0.1')
+    parser_pre.add_argument('--rm-fermi', action='store_true', default=False,
+                            help="Whether or not the input `erange` has removed the Fermi energy is indicated by this flag. Default: False")
+    parser_pre.add_argument('--extra', action='store', type=str, default='',
+                            help='Extra input. In `template` mode and within extra input (basic, wann, band), we can choose one of the detailed parts to print.' \
+                                 'In `dos` mode and within extra input (`species`, `structure_id`, `orbital_id` list separated by ;), ' \
+                                 'we can treat input as projections for `Wannier90` input to suggest dis frozen energy. Details can be found in the document.')
+    parser_pre.add_argument('--spin-down', action='store_true', default=False,
+                            help="Specify the spin channel to `Spin.down`. Without this argument, the default one is `Spin.up`.")
     parser_pre.add_argument('--plot', default=False, action="store_true",
                             help='plot the dos distribution')
-    parser_pre.add_argument('--extra', action='store', type=str, default='',
-                            help='Extra input. In `template` mode and within extra input (basic, wann, band), we can choose one of the detailed parts to print. In `dos` mode and within extra input (`species`, `structure_id`, `orbital_id` list separated by ;), we can decide the projections for `Wannier90` input to analyze. See example in document for details.')
     parser_pre.add_argument('--eps', action='store', type=float, default=4e-3,
                             help="Tolerance for dis energy window suggestion. Default: 0.004")
+    parser_pre.add_argument('--deg', action='store', type=int, default=1,
+                            help='Degeneracy of bands. Default: 1')
     parser_pre.set_defaults(func=pre)
 
     # show distribution of eigenvalues
@@ -100,7 +102,7 @@ def get_args():
     parser_eig.add_argument('--config', action='store_true', default=False,
                             help='Read input from config file `auto_w90_input.yaml` directly. Default: False')
     parser_eig.add_argument('--path', default='.',
-                            help='The path of working dir. Please use relative path. Default: .')
+                            help='The path of working dir. Default: .')
     parser_eig.add_argument('-i', dest='eig', action='store', type=str,
                             default='EIGENVAL',
                             help='Select wannier90.eig file or EIGENVAL file. Default: EIGENVAL')

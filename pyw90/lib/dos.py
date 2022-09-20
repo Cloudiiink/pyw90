@@ -6,6 +6,7 @@ from typing import Tuple
 import warnings
 from collections import Counter
 from functools import reduce
+import os
 
 # Calculate the percentage of given sites and given orbitals inside the energy interval
 from scipy.interpolate import splrep, splev
@@ -290,8 +291,8 @@ class DOS():
 
         # TODO: use `PROCAR` to generate a result, although it might not be accurate enough.
         if left < min(ee) or right > max(ee):
-            warnings.warn(f'CHECK YOUR INPUT! The energies in `EIGENVAL` is ranged from {ee.min()} to {ee.max()}' \
-                        ' which not include all the energy ranged from {left} to {right} you input.')
+            warnings.warn(f'CHECK YOUR INPUT! The energies in `EIGENVAL` is ranged from {ee.min()} to {ee.max()}, ' \
+                          f'which does not include all the energy ranged from {left} to {right} you input.')
 
         lspec, lstruc, lorbid, lorbname, lstr, ldos = [list() for _ in range(6)]
         for i in range(num_sites):
@@ -427,10 +428,10 @@ class DOS():
         # color = [colors[0] if row['key_string'] in selected else colors[-1]
         #              for _, row in df.iterrows()]
         color = [colors[0] if row in selected else colors[-1] for row in df['key_string']]
-        bc.cprint(bc.BLUE, f'Plot with selected orbitals in `{colors[0]}` and not selected orbitals in `{colors[-1]}`.')
-        bc.cprint(bc.BLUE, f'{len(selected)} orbitals selected.')
-        mask = (np.array(color) == colors[0])
-        bc.cprint(bc.BLUE, f'Plot {len(df)} orbitals with {sum(mask)} selected at\n    {savefig}')
+        mask  = (np.array(color) == colors[0])
+        bc.cprint(bc.BLUE, f'Plotted with selected orbitals in `{colors[0]}` and non-selected orbitals in `{colors[-1]}`.')
+        bc.cprint(bc.BLUE, f'Plotted with a total of {len(df)} orbitals, {sum(mask)} of which are selected.')
+        bc.cprint(bc.BLUE, f"Figure should be stored at {os.path.abspath(savefig)}")
         
         ax = df.plot.barh(x="key_string", y="dos", color=color) #, figsize=(8, 20))
         ax.set_axisbelow(True)

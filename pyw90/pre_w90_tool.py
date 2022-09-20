@@ -53,18 +53,14 @@ def export_vasp_band(path: str):
         with open(filename, 'w') as f:
             f.writelines(lines)
 
-    print(f"Generate `p4vasp` format bnd.dat file from {abspath(os.path.join(path, 'vasprun.xml'))}")
     run = Vasprun(os.path.join(path, 'vasprun.xml'))
     bands = run.get_band_structure(os.path.join(path, 'KPOINTS'), line_mode=True)
     nspin = len(bands.bands.keys())
     kk = bands.distance
     if nspin == 1:
-        print(f'export band data to `bnd.dat` in folder\n    {abspath(path)}')
         export2dat(kk, bands.bands[Spin.up], os.path.join(path, 'bnd.dat'))
         os.popen(f"ln -s {relpath(os.path.join(path, 'bnd.dat'))} .")
     elif nspin == 2:
-        print('NSPIN = 2')
-        print(f'export band data to `bnd_up.dat` and `bnd_down.dat` separatly in folder\n    {abspath(path)}')
         export2dat(kk, bands.bands[Spin.up], os.path.join(path, 'bnd_up.dat'))
         export2dat(kk, bands.bands[Spin.down], os.path.join(path, 'bnd_down.dat'))
         os.popen(f"ln -s {relpath(os.path.join(path, 'bnd_up.dat'))} .")
@@ -117,7 +113,12 @@ def main_features(args):
         else:
             W90.win_template(args.extra)
     elif args.mode[0].lower() == 'b':   # generate p4vasp-like band data file
+        bc.cprint(bc.BLUE, f"Generate `p4vasp` format `bnd.dat` file from {abspath(os.path.join(path, 'vasprun.xml'))}")
         export_vasp_band(path)
+        print()
+        bc.cprint(bc.BLUE, f'Export band data to `bnd.dat` (or `bnd_up(down).dat` for spinful system).')
+        bc.cprint(bc.BLUE, f'Files should be stored at {abspath(path)}')
+        bc.cprint(bc.BLUE, f"We also create symbolic link to current folder for `bnd.dat`.")
     elif args.mode[0].lower() == 'd':   # DOS Analysis
         efermi = get_efermi(args, from_file=True)
         spin   = Spin.up if not args.spin_down else Spin.down
@@ -130,14 +131,13 @@ def main_features(args):
         bc.cprint(bc.BLUE, f"\nReading vasprun.xml file from\n    `{abspath(os.path.join(path, 'vasprun.xml'))}` \n" \
                             "for DOS analysis...")
         print(f"    Fermi level : {efermi:.5f} eV")
-        print(f"    DOS Gap     : {dos_data_total.get_gap(spin=spin):.5f} eV")
+        print(f"    DOS Gap     : {dos_data_total.get_gap(spin=spin):.5f} eV\n")
 
         if args.rm_fermi:
             left, right = left + efermi, right + efermi
-            print(f"\nCalculated DOS Energy Range: {left}, {right}")
-        else:
-            print(f"\nCalculated DOS Energy Range: {left}, {right}")
+            
         erange = left, right
+        bc.cprint(bc.BLUE, f"Calculated DOS Energy Range: {left}, {right}\n")
         
         structure = dos_data_total.structure
         dos_df = DOS.get_dos_df(dos_data_total, left, right, spin=spin)
@@ -145,21 +145,27 @@ def main_features(args):
         if len(args.extra) == 0:
             print()
             print(dos_df.sort_values('dos', ascending=False))
+            print()
             norb, simple_res_df = DOS.get_dos_analysis_df(dos_df, lb=lb)
             nwann = int(norb * args.deg)
-            bc.cprint(bc.RED, f"\nNumber of Selected Orbitals: {norb}")
-            print(f"\nNumber of Selected WFs: {nwann}")
-            bc.cprint(bc.RED, "\nSelected Orbitals: ")
+
+            bc.cprint(bc.RED, f"Based on your input, set the lower selection bound to {lb} and {norb} orbitals are selected.")
+            bc.cprint(bc.RED, f"Number of WFs selected: {nwann} (with degeneracy {args.deg})\n")
+            bc.cprint(bc.RED,  "Orbitals Selected: ")
             print(simple_res_df)
-            bc.cprint(bc.RED, "\nWannier90 Projection:")
+            print()
+            bc.cprint(bc.RED,  "Wannier90 Projection:")
             print(DOS.get_projections_w90_str(simple_res_df, structure))
-            bc.cprint(bc.RED, "\npyw90 --extra input:")
+            print()
+            bc.cprint(bc.RED, "pyw90 --extra input:")
             selected_str = DOS.get_projections_selected_str(simple_res_df, structure)
             print(selected_str)
+            print()
 
             if args.plot:
                 selected = DOS.parse_projections_from_selected(selected_str)
-                DOS.plot_dos_df(dos_df, selected=selected, savefig=os.path.join(os.getcwd(), 'dos_analysis.pdf'))
+                savefig  = os.path.join(os.getcwd(), 'dos_analysis.pdf')
+                DOS.plot_dos_df(dos_df, selected=selected, savefig=savefig)
 
         else:
             selected = DOS.parse_projections_from_selected(args.extra)
@@ -185,20 +191,25 @@ def main_features(args):
 
             dis_froz_dos_df = dis_froz_df.assign(pdos=dis_pdos_l, tdos=dis_tdos_l, percent=percent_l)
             dis_froz_dos_df = dis_froz_dos_df.sort_values('percent', ascending=False)
-            N = len(dis_froz_dos_df)
+            # N = len(dis_froz_dos_df)
             print()
+            bc.cprint(bc.RED,  "Dis frozen window table")
+            bc.cprint(bc.BLUE, "The table is sorted according to the percentage of pdos/tdos.")
+            bc.cprint(bc.BLUE, "If you want to see `dis_win_min(max)` suggestion, please use `pyw90 eig suggest` menu.")
             print(dis_froz_dos_df)
 
             dis_win_max = w90.suggest_win_max(erange[0])
-            print(f'\nLowest `dis_win_max` for {erange[0]}: {dis_win_max}')
+            bc.cprint(bc.RED, f'\nLowest `dis_win_max` for {erange[0]}: {dis_win_max}')
+            print()
 
             if args.plot:
                 # print(f'Use best dis frozen window in above table to regenerate dos_df to plot ...')
                 # left  = dis_froz_dos_df['dis_froz_min'][0]
                 # right = dis_froz_dos_df['dis_froz_max'][0]
-                dos_df = DOS.get_dos_df(dos_data_total, left, right)
+                dos_df  = DOS.get_dos_df(dos_data_total, left, right)
+                savefig = os.path.join(os.getcwd(), 'dos_analysis_selected.pdf')
                 DOS.plot_dos_df(dos_df, selected=selected,
-                             savefig=os.path.join(os.getcwd(), 'dos_analysis_selected.pdf'))
+                                savefig=savefig)
 
 if __name__ == "__main__":
     args = get_args()
