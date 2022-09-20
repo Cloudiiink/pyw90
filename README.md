@@ -16,7 +16,7 @@ A `VASP` and `Wannier90` interfaced tool for projection analysis and fully autom
 ```bash
 pip install pyw90
 # update the package
-pip install pyw90 --update
+pip install pyw90 --upgrade
 ```
 
 The `pyw90` dependencies are listed as following:
@@ -28,4 +28,8 @@ The `pyw90` dependencies are listed as following:
 - python-yaml (PyYAML)
 - pandas
 - matplotlib (>=3.4)
+
+## Usage
+
+## Example
 
