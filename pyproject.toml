@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "pyw90"
 version = "1.0.4"
-description = "A tool interfaced to VASP and Wannier90 with projection analysis and automatically dis energy window optimization"
+description = "A VASP and Wannier90 interfaced tool for projection analysis and fully automated dis energy window optimization."
 authors = ["En Wang (Cloudiiink) <wangenzj@gmail.com>"]
 license = "GPL-3.0-only"
 readme = "README.md"

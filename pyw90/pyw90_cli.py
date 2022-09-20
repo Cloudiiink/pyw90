@@ -137,7 +137,7 @@ def auto(args):
     '''
     path    = os.path.dirname(os.path.realpath(__file__))
     environ = dict(os.environ)
-    
+
     if args.mode.lower()[0] == 'r':  # run
         log  = os.path.join(args.path, 'auto_w90_output.txt')
         p = subprocess.Popen([sys.executable, os.path.join(path, 'auto_w90_fit.py'), '--path', args.path, "--environ", str(environ)],
@@ -305,8 +305,8 @@ def main_cli():
                       '        ─█──█ █▄▄█ ░█░█░█ ▀▄▄█ █▄▀█\n' \
                       '         █▀▀▀ ▄▄▄█ ░█▄▀▄█ ─▄▄▀ █▄▄█\n' \
                       '                                   ')
-    bc.cprint(bc.RED, 'A tool interfaced to VASP and Wannier90 for projection analysis\n' \
-                      'and automatical dis energy window optimization.\n' \
+    bc.cprint(bc.RED, 'A VASP and Wannier90 interfaced tool for projection analysis\n' \
+                      'and fully automated dis energy window optimization. \n' \
                       '                                   \n' \
                       'For more information, please refer to https://github.com/Cloudiiink/pyw90 \n')
     args = get_args()

@@ -1,6 +1,6 @@
 # pyw90
 
-A tool interfaced to `VASP` and `Wannier90` with projection analysis and automatically dis energy window optimization.
+A `VASP` and `Wannier90` interfaced tool for projection analysis and fully automated dis energy window optimization.
 
 ## Key features
 
