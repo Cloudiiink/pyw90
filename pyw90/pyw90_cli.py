@@ -17,6 +17,7 @@ from pyw90.lib.w90 import W90
 from pyw90.lib.job import Job
 from pyw90.lib.config import Config
 from pyw90.utility.utility import get_efermi, show_all_fonts, parse_kernel
+from pyw90.utility.utility import bc
 from pyw90.pre_w90_tool import main_features
 
 def get_args():
@@ -73,8 +74,8 @@ def get_args():
                             help='The path of working dir. Please use relative path. Default: .')
     parser_pre.add_argument('--deg', action='store', type=int, default=1,
                             help='Degeneracy of bands. Default: 1')
-    parser_pre.add_argument('--sub-fermi', action='store_true', default=False,
-                            help="Flag for whether the input `erange` has subtract the Fermi energy or not. Default: False")
+    parser_pre.add_argument('--rm-fermi', action='store_true', default=False,
+                            help="Whether or not the input `erange` has removed the Fermi energy is indicated by this flag. Default: False")
     parser_pre.add_argument('--lb', action='store', type=float, default=0.1,
                             help='Lower bound for selected orbital / max single orbital. default: 0.1')
     parser_pre.add_argument('--spin-down', action='store_true', default=False,
@@ -93,6 +94,9 @@ def get_args():
     # show distribution of eigenvalues
     parser_eig = subparsers.add_parser('eig', help='Show distribution of eigenvalues.')
     parser_eig.add_argument('mode', help='Mode: report, plot, count, suggest')
+    parser_eig.add_argument('-e', dest='erange', action='store', type=float,
+                            default=None, nargs=2,
+                            help='Energy range.')
     parser_eig.add_argument('--config', action='store_true', default=False,
                             help='Read input from config file `auto_w90_input.yaml` directly. Default: False')
     parser_eig.add_argument('--path', default='.',
@@ -100,6 +104,8 @@ def get_args():
     parser_eig.add_argument('-i', dest='eig', action='store', type=str,
                             default='EIGENVAL',
                             help='Select wannier90.eig file or EIGENVAL file. Default: EIGENVAL')
+    parser_eig.add_argument('--rm-fermi', action='store_true', default=False,
+                            help="Whether or not the input `erange` has removed the Fermi energy is indicated by this flag. Default: False")
     parser_eig.add_argument('--efermi', dest='efermi', action='store',
                             default=None,
                             help='Fermi level. Default value is generated from `vasprun.xml`.')
@@ -112,9 +118,6 @@ def get_args():
     parser_eig.add_argument('--deg', dest='ndeg', action='store', type=int,
                             default=1,
                             help='Number of degeneracy. Default: 1')
-    parser_eig.add_argument('-e', dest='erange', action='store', type=float,
-                            default=None, nargs=2,
-                            help='Energy range.')
     parser_eig.add_argument('--separate', default=False, action="store_true",
                             help='Calculate bands not separately.')
     parser_eig.add_argument('--eps', action='store', type=float, default=4e-3,
@@ -138,12 +141,12 @@ def auto(args):
                                stdout = open(log, 'w'),
                                stderr = open(log, 'w'),
                                start_new_session=True)
-        print(f'Auto-W90-Fit run with PID: {p.pid}')
+        bc.cprint(bc.BLUE, f'Auto-W90-Fit run with PID: {p.pid}')
     elif args.mode.lower()[0] == 'i':   # input
-        print(f'Create example input file for `auto` menu at input folder')
+        bc.cprint(bc.BLUE, f'Create example input file for `auto` menu at input folder')
         shutil.copy(os.path.join(path, 'auto_w90_input.yaml'), os.getcwd())
     elif args.mode.lower()[0] == 't':   # terminate
-        print(f'Kill the job with PID {args.pid} as listed')
+        bc.cprint(bc.BLUE, f'Kill the job with PID {args.pid} as listed')
 
         from getpass import getuser
         local_usr_name = getuser()
@@ -151,9 +154,9 @@ def auto(args):
         ps = os.popen(f'ps aux | grep {local_usr_name}').read()
         print(ps)
         all_pid = [int(s.split()[1]) for s in ps.strip().split('\n')]
-        print('Input Y(es) / N(o) (Or input the pid listed above you want to terminate): ')
-        print('IMPORTANT: If you run task local, input the `auto_w90_fit.py` and `wannier90.x` separate with comma (e.g. 2101, 2121)')
-        print('           Otherwise `auto_w90_fit.py` will repeatedly submit new tasks.')
+        bc.cprint(bc.RED, 'Input Y(es) / N(o) (Or input the pid listed above you want to terminate): ')
+        bc.cprint(bc.RED, 'IMPORTANT: If you run task local, input the `auto_w90_fit.py` and `wannier90.x` separate with comma (e.g. 2101, 2121)')
+        bc.cprint(bc.RED, '           Otherwise `auto_w90_fit.py` will repeatedly submit new tasks.')
         usr_input = input()
         if usr_input.lower()[0] == 'y':
             os.killpg(os.getpgid(args.pid), signal.SIGTERM)  # Send the signal to all the process groups
@@ -191,14 +194,14 @@ def cmp(args):
         kernel_str, mid, width = l[0], float(l[1]), float(l[2])
         kernel = parse_kernel(kernel_str, mid, width)
     
-    print(f'Reading Data from {os.path.relpath(args.path)}')
+    bc.cprint(bc.BLUE, f'Reading Data from {os.path.relpath(args.path)}')
 
     w90.plot_cmp_vasp_w90(args.name, ylim=args.ylim,
                           font=args.fontfamily, size=args.fontsize)
 
     if not args.no_quality and not args.quiet:
         res = w90.evaluate(kernel=kernel)
-        print(f'Final Quality: {res}')
+        bc.cprint(bc.RED, f'Final Quality: {res}')
         w90.show_dEs(update=True, terminal=True)
 
     if not args.no_spread and not args.quiet:
@@ -214,6 +217,7 @@ def eig(args):
     r'''
     Show distribution of eigenvalues.
     '''
+    efermi = get_efermi(args)
     if args.config:
         config = Config(yaml_file='auto_w90_input.yaml')
         w90 = W90(config=config, 
@@ -224,53 +228,62 @@ def eig(args):
     else:
         w90 = W90(eig=args.eig,
                   path=args.path,
-                  efermi=get_efermi(args), 
+                  efermi=efermi, 
                   nbnds_excl=args.nbnds_excl, 
                   nwann=args.nwann, 
                   ndeg=args.ndeg,
                   eps=args.eps)
+    if args.rm_fermi:
+        erange = min(args.erange) + efermi, max(args.erange) + efermi
+    else:
+        erange = min(args.erange), max(args.erange)
+    print(f"Calculated Energy Range: {erange[0]}, {erange[1]} with Fermi level {efermi:.6f}")
 
     if args.mode[0].lower() == 'p': # plot
-        w90.plot_eigenval(erange=args.erange, separate=args.separate,
+        w90.plot_eigenval(erange=erange, separate=args.separate,
                           savefig=os.path.join(os.getcwd(), 'eigenval_dis.png'))
     elif args.mode[0].lower() == 'r': # report
-        w90.report_eigenval(erange=args.erange, separate=args.separate)
+        w90.report_eigenval(erange=erange, separate=args.separate)
     elif args.mode[0].lower() == 'c': # count
         # Count how many states inside the energy interval
-        print('For `dis_win_min` and `dis_win_max` settings:')
-        print(f'    {w90.count_states_least(args.erange)} states at least in {args.erange}.')
-        print('For `dis_froz_min` and `dis_froz_max` settings:')
-        print(f'    {w90.count_states_most(args.erange)} states at most in {args.erange} (At some kpoints).')
+        bc.cprint(bc.BLUE, 'For `dis_win_min` and `dis_win_max` settings:')
+        print(f'    {w90.count_states_least(erange)} states at least in {erange}.')
+        bc.cprint(bc.BLUE, 'For `dis_froz_min` and `dis_froz_max` settings:')
+        print(f'    {w90.count_states_most(erange)} states at most in {erange} (At some kpoints).')
     elif args.mode[0].lower() == 's': # suggest
         # suggest dis_win_min and dis_win_max
-        print('`dis_win_min` and `dis_win_max` Table:\n')
-        print('Column `dis_win_max` represents the **lowest** dis_win_max for `dis_win_min`')
-        print('Column `i+1_min` / `i_max` represents the band minimum / maximum near the gap')
-        print('Column `Nleast`  / `Nmost` represents the least / most number of states inside `dis_win_min` and Fermi level')
-        print(f'Fermi level: {w90.efermi}\n')
+        Nmost  = w90.count_states_most(erange)
+        Nleast = w90.count_states_least(erange)
+        print(f'There are at most {Nmost} states and at least {Nleast} states in {args.erange}.\n')
+
+        bc.cprint(bc.RED, '`dis_win_min` and `dis_win_max` Table:')
+        bc.cprint(bc.BLUE, '    Column `dis_win_max` shows the **lowest** dis_win_max for `dis_win_min`\n' \
+                           '    Column `i+1_min` / `i_max` shows the band minimum / maximum near the gap\n' \
+                           '    Column `Nleast`  / `Nmost` shows the least / most number of states inside `dis_win_min` and Fermi level.\n')
         df = w90.suggest_win_table()
         print(df)
 
         # suggest frozen window with given energy interval
-        print(f'\n`dis_froz_min` and `dis_froz_max` Table:')
+        bc.cprint(bc.RED, '\n`dis_froz_min` and `dis_froz_max` Table:')
+        bc.cprint(bc.BLUE, f'    Suggest `dis_froz_min` & `dis_froz_max` as following with #WFs = {w90.nwann} from input')
+        bc.cprint(bc.BLUE,  '    Use `pre dos` menu to get suggestions based on projected density of states\n')
         df = w90.get_dis_froz_df(args.erange)
-        if len(df) > 0:
-            print(df)
+        print(df)
 
     else:
-        print(f'Unsupported mode: {args.mode}')
+        bc.cprint(bc.BLUE, f'Unsupported mode: {args.mode}')
 
 # MAIN
 def main_cli():
-    print('                                   \n' \
-          '         █▀▀█─█  █─░█──░█ ▄▀▀▄ █▀▀█\n' \
-          '        ─█──█ █▄▄█ ░█░█░█ ▀▄▄█ █▄▀█\n' \
-          '         █▀▀▀ ▄▄▄█ ░█▄▀▄█ ─▄▄▀ █▄▄█\n' \
-          '                                   \n' \
-          'A tool interfaced to VASP and Wannier90 with projection analysis\n' 
-          '       and automatically dis energy window optimization.\n' \
-          '                                   \n' \
-          'For more information, please refer to https://github.com/Cloudiiink/pyw90 \n')
+    bc.cprint(bc.RED, '                                   \n' \
+                      '         █▀▀█─█  █─░█──░█ ▄▀▀▄ █▀▀█\n' \
+                      '        ─█──█ █▄▄█ ░█░█░█ ▀▄▄█ █▄▀█\n' \
+                      '         █▀▀▀ ▄▄▄█ ░█▄▀▄█ ─▄▄▀ █▄▄█\n' \
+                      '                                   ')
+    bc.cprint(bc.RED, 'A tool interfaced to VASP and Wannier90 for projection analysis\n' \
+                      'and automatical dis energy window optimization.\n' \
+                      '                                   \n' \
+                      'For more information, please refer to https://github.com/Cloudiiink/pyw90 \n')
     args = get_args()
     args.path = os.path.join(os.getcwd(), args.path)
     args.func(args)

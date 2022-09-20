@@ -9,6 +9,7 @@ from scipy import interpolate
 from scipy.signal import savgol_filter
 
 from pyw90.lib.config import Config
+from pyw90.utility.utility import bc
 
 import logging
 logger = logging.getLogger(__name__)
@@ -335,7 +336,7 @@ class W90():
         mask = self.eband_min >= emin
         idx = np.argmax(mask) + nwann - 1
         if idx >= self.nbnds:
-            print(f'There is no enough states for {emin} with {nwann} WFs!')
+            bc.cprint(bc.RED, f'There is no enough states for {emin} with {nwann} WFs!')
             res = int(self.emax) + 1.
         else:
             res = self.eband_max[idx] + self.eps
@@ -382,19 +383,15 @@ class W90():
         - `erange`: The energy interval you concerned about.
         '''
         N = self.count_states_most(erange)
-        print(f'There are {N} states at most in {erange} with Fermi level at {self.efermi}.')
         emin, emax = min(erange), max(erange)
         dN = N - self.nwann
         froz_min_list, froz_max_list, N = [], [], []
 
         if self.nwann <= 0:
-            print(f'Please input vaild number of WF, now is {self.nwann}.')
+            bc.cprint(bc.RED, f'Please input vaild number of WF, now is {self.nwann}.')
             return pd.DataFrame(columns=['dis_froz_min', 'dis_froz_max', 'N'])
 
         elif dN > 0:
-            print('Suggest dis_froz_min & dis_froz_max as following:')
-            print(f'nwann: {self.nwann}    degenercy: {self.ndeg}    Fermi: {self.efermi:12.6f}')
-
             for i in range(0, dN + 1, self.ndeg):
                 # First get froz_max for nwann = nwann_input + i, then get froz_min for nwann = nwann_input and froz_max
                 froz_max = self.suggest_froz_max(emin, nwann=self.nwann+i)
@@ -410,7 +407,10 @@ class W90():
                                  columns=['dis_froz_min', 'dis_froz_max', 'N'])
 
             if num_missing > 0:
-                print(f'\nWANRING: There are {num_missing} states between given `emin`: {emin} and lowest `dis_froz_min`: {min(froz_min_list)}. \n\nPlease carefully treat the suggestion of dis_froz_min / dis_froz_max and check energy range of each bands again. This situation usually happens in no-SOC system with many denegeracy point. But we still want to give you some useful energy window information with states less than number of WFs.\n')
+                bc.cprint(bc.RED, f'    WANRING: There are {num_missing} states between given `emin`: {emin} and lowest `dis_froz_min`: {min(froz_min_list)}. \n' \
+                                   '    Please carefully consider the suggestion of dis frozen window and double-check energy range of each band.\n' \
+                                   '    This is a frequent occurrence in no-SOC systems with numerous denegeracy point.\n' \
+                                   '    However, we still want to provide you with some alternative energy window options.\n')
                 for i in range(self.nwann - num_missing, self.nwann, 1):
                     emax_i = self.suggest_froz_max(emin, nwann=i)
                     new = pd.DataFrame({"dis_froz_min" : emin,

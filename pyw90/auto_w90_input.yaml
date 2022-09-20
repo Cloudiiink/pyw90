@@ -21,10 +21,15 @@ username: enwang
 # 
 # If you have any question, please ask the administrator of your server. DO AT YOUR OWN RISK
 # If you choose to run locally, you don't need to give `runfile` value
-local: False
 # how to run your job locally. Only used when `local` is `True`.
+local: False
+
+# ! IMPORTANT: Make sure you have added `wannier90.x` to your `$PATH` if you want to run as following
 # single core
 localrun: wannier90.x wannier90
+# uncomment to use absolute path
+# localrun: /path/to/your/wannier90.x wannier90
+
 # Parallel version
 # localrun: mpirun -np 10 wannier90.x wannier90
 

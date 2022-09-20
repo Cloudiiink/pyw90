@@ -16,6 +16,7 @@ from pymatgen.electronic_structure.core import Spin
 
 # pyw90
 from pyw90.utility.utility import get_efermi
+from pyw90.utility.utility import bc
 from pyw90.lib.w90 import W90
 from pyw90.lib.dos import DOS
 
@@ -78,17 +79,17 @@ def get_args():
     parser.add_argument('mode', help='Mode: kpath, band, template, dos')
     parser.add_argument('--path', default='.',
                         help='Default: .')
-    parser.add_argument('--sub-fermi', action='store_true', default=False,
-                        help="Flag for whether the input `erange` has subtract the Fermi energy or not. Default: False")
+    parser.add_argument('-e', dest='erange', action='store', type=float,
+                        default=[-1e3, 1e3], nargs=2,
+                        help='Energy range.')
+    parser.add_argument('--rm-fermi', action='store_true', default=False,
+                        help="Whether or not the input `erange` has removed the Fermi energy is indicated by this flag. Default: False")
     parser.add_argument('--deg', action='store', type=int, default=1,
                         help='Degeneracy of bands. Default: 1')
     parser.add_argument('--lb', action='store', type=float, default=0.1,
                         help='Lower bound for selected orbital / max single orbital. default: 0.1')
     parser.add_argument('--spin-down', action='store_true', default=False,
                         help="Specify the spin channel to `Spin.down`. Without this argument, the default one is `Spin.up`.")
-    parser.add_argument('-e', dest='erange', action='store', type=float,
-                        default=[-1e3, 1e3], nargs=2,
-                        help='Energy range.')
     parser.add_argument('--plot', default=False, action="store_true",
                         help='plot the dos distribution')
     parser.add_argument('--extra', action='store', type=str, default='',
@@ -104,10 +105,10 @@ def main_features(args):
     path = os.path.join(os.getcwd(), args.path)
     if args.mode[0].lower() == 'k': # generate kpath
         if 'KPOINTS' in os.listdir(path):
-            print(f'Generate Kpoint_Path from\n    {abspath(os.path.join(path, "KPOINTS"))}\n')
+            bc.cprint(bc.BLUE, f'Generate Kpoint_Path from\n    {abspath(os.path.join(path, "KPOINTS"))}\n')
             kpath(os.path.join(path, "KPOINTS"), delimeter=args.extra)
         else:
-            print(f'There is no KPOINTS file in\n   {path}\nPlease check your input!')
+            bc.cprint(bc.BLUE, f'There is no KPOINTS file in\n   {path}\nPlease check your input!')
     elif args.mode[0].lower() == 't':   # print W90 parameter template
         if len(args.extra) == 0:
             W90.win_template('basic')
@@ -126,12 +127,12 @@ def main_features(args):
         vasprun = Vasprun(os.path.join(path, "vasprun.xml"))
         dos_data_total = vasprun.complete_dos       # get dos data
 
-        print(f"\nReading vasprun.xml file from\n    `{abspath(os.path.join(path, 'vasprun.xml'))}` \n" \
-               "for DOS analysis...")
+        bc.cprint(bc.BLUE, f"\nReading vasprun.xml file from\n    `{abspath(os.path.join(path, 'vasprun.xml'))}` \n" \
+                            "for DOS analysis...")
         print(f"    Fermi level : {efermi:.5f} eV")
         print(f"    DOS Gap     : {dos_data_total.get_gap(spin=spin):.5f} eV")
 
-        if args.sub_fermi:
+        if args.rm_fermi:
             left, right = left + efermi, right + efermi
             print(f"\nCalculated DOS Energy Range: {left}, {right}")
         else:
@@ -146,13 +147,13 @@ def main_features(args):
             print(dos_df.sort_values('dos', ascending=False))
             norb, simple_res_df = DOS.get_dos_analysis_df(dos_df, lb=lb)
             nwann = int(norb * args.deg)
-            print(f"\nNumber of Selected Orbitals: {norb}")
+            bc.cprint(bc.RED, f"\nNumber of Selected Orbitals: {norb}")
             print(f"\nNumber of Selected WFs: {nwann}")
-            print("\nSelected Orbitals: ")
+            bc.cprint(bc.RED, "\nSelected Orbitals: ")
             print(simple_res_df)
-            print("\nWannier90 Projection:")
+            bc.cprint(bc.RED, "\nWannier90 Projection:")
             print(DOS.get_projections_w90_str(simple_res_df, structure))
-            print("\npyw90 --extra input:")
+            bc.cprint(bc.RED, "\npyw90 --extra input:")
             selected_str = DOS.get_projections_selected_str(simple_res_df, structure)
             print(selected_str)
 

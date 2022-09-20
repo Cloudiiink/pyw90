@@ -21,6 +21,7 @@ matplotlib.use('Agg')
 
 # pyw90
 from pyw90.utility.utility import num2str, str2num, get_id_from_specie
+from pyw90.utility.utility import bc
 
 def check_orb_name(func):
     def __wrapper__(*args, **kwargs):
@@ -426,10 +427,10 @@ class DOS():
         # color = [colors[0] if row['key_string'] in selected else colors[-1]
         #              for _, row in df.iterrows()]
         color = [colors[0] if row in selected else colors[-1] for row in df['key_string']]
-        print(f'Plot with selected orbitals in `{colors[0]}` and not selected orbitals in `{colors[-1]}`.')
-        print(f'{len(selected)} orbitals selected.')
+        bc.cprint(bc.BLUE, f'Plot with selected orbitals in `{colors[0]}` and not selected orbitals in `{colors[-1]}`.')
+        bc.cprint(bc.BLUE, f'{len(selected)} orbitals selected.')
         mask = (np.array(color) == colors[0])
-        print(f'Plot {len(df)} orbitals with {sum(mask)} selected at\n    {savefig}')
+        bc.cprint(bc.BLUE, f'Plot {len(df)} orbitals with {sum(mask)} selected at\n    {savefig}')
         
         ax = df.plot.barh(x="key_string", y="dos", color=color) #, figsize=(8, 20))
         ax.set_axisbelow(True)

@@ -4,6 +4,7 @@ import pandas as pd
 import subprocess
 
 from pyw90.lib.config import Config
+from pyw90.utility.utility import bc
 
 import logging
 logger = logging.getLogger(__name__)
@@ -114,9 +115,9 @@ class Job():
         Cancel all the job with name `self.job_name`
         """
         df = self.get_jobs()
-        print(f'Cancel all the jobs as listed')
+        bc.cprint(bc.RED, f'Cancel all the jobs as listed')
         print(df)
-        print('Y(es) / N(o): ')
+        bc.cprint(bc.RED, 'Y(es) / N(o): ')
         if input().lower()[0] == 'y':
             for i in df['JOBID']:
                 # os.popen(f"scancel {i}")
