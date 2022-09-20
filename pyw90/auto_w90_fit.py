@@ -20,21 +20,15 @@ from pyw90.lib.w90 import W90
 
 import logging
 
-strtime = time.strftime(r'%Y%m%d%H%M%S', time.localtime())
-logfilename = 'log_autow90_{0}.log'.format(strtime)
-logging.basicConfig(level=logging.DEBUG,     # logging.INFO
-                    filename=logfilename,
-                    datefmt='%H:%M:%S',
-                    format='%(message)s ! %(asctime)s/%(levelname)s/%(module)s/%(lineno)d')
-logger = logging.getLogger(__name__)
-
 def get_args():
     r'''
     CML Parser
     '''
     parser = argparse.ArgumentParser(description='Auto-Wannier90-Fit. Using minimize method to choose the most suitable energy windows.')
-    parser.add_argument('--path', default='.',
+    parser.add_argument('--path', action='store', type=str, default='.',
                         help='Default: .')
+    parser.add_argument('--environ', action='store', type=str, default=None,
+                        help='Full Environment Variables from `os.environ`. Default: None')
     args = parser.parse_args()
     return args
 
@@ -59,8 +53,9 @@ def main_task(opt_input:ArrayLike, w90:W90) -> float:
     job.check_run_until_stop()
     logger.info('Job <{0}> is done.'.format(w90.config.job_name).ljust(80, ' '))
 
-    mtime = time.ctime(os.path.getmtime(w90.config.w90_bnd))
-    logger.info(f'`{w90.config.w90_bnd}` was last modified at {mtime}.'.ljust(80, ' '))
+    w90_bnd = os.path.join(w90.path, w90.config.w90_bnd)
+    mtime = time.ctime(os.path.getmtime(w90_bnd))
+    logger.info(f'`{w90_bnd}` was last modified at {mtime}.'.ljust(80, ' '))
     logger.info('Evaluating the quality ...'.ljust(80, ' '))
 
     res = w90.evaluate()
@@ -73,16 +68,26 @@ def main_task(opt_input:ArrayLike, w90:W90) -> float:
 if __name__ == '__main__':
     args = get_args()
 
+    strtime = time.strftime(r'%Y%m%d%H%M%S', time.localtime())
+    logfilename = 'log_autow90_{0}.log'.format(strtime)
+    # logging.basicConfig(level=logging.DEBUG,     # logging.INFO
+    logging.basicConfig(level=logging.INFO,
+                        filename=os.path.join(args.path, logfilename),
+                        datefmt='%H:%M:%S',
+                        format='%(message)s ! %(asctime)s/%(levelname)s/%(module)s/%(lineno)d')
+    logger = logging.getLogger(__name__)
+
     logger.info("""
                     ──█▀▀█─█  █ ▀▀█▀▀ █▀▀█ ░█  ░█ ▄▀▀▄ █▀▀█
                      ░█▄▄█ █  █   █ ──█──█─░█░█░█ ▀▄▄█ █▄▀█
                      ░█ ░█ ─▀▀▀───▀─  ▀▀▀▀ ░█▄▀▄█──▄▄▀ █▄▄█
                      
-    Module for automatically dis energy window optimization inside `pyw90`.
+    A module inside `pyw90` for automatically optimizing dis energy windows.
     For more information, please refer to https://github.com/Cloudiiink/pyw90
                                                                                 """)
 
-    config = Config(yaml_file= f"{args.path}/auto_w90_input.yaml")
+    config = Config(yaml_file= os.path.join(args.path, "auto_w90_input.yaml"),
+                    environ=eval(args.environ))
     config.info()
     w90 = W90(config, path=args.path)
 

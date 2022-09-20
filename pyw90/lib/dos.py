@@ -427,9 +427,9 @@ class DOS():
         #              for _, row in df.iterrows()]
         color = [colors[0] if row in selected else colors[-1] for row in df['key_string']]
         print(f'Plot with selected orbitals in `{colors[0]}` and not selected orbitals in `{colors[-1]}`.')
-        print(f'{len(selected)} orbitals selected')
+        print(f'{len(selected)} orbitals selected.')
         mask = (np.array(color) == colors[0])
-        print(f'Plot {len(df)} orbitals with {sum(mask)} selected.')
+        print(f'Plot {len(df)} orbitals with {sum(mask)} selected at\n    {savefig}')
         
         ax = df.plot.barh(x="key_string", y="dos", color=color) #, figsize=(8, 20))
         ax.set_axisbelow(True)

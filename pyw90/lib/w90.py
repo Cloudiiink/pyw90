@@ -31,14 +31,15 @@ class W90():
             self._win   = config.win
             self.efermi = config.efermi
             self.nwann  = config.nwann
+            self.path   = config.path     # the directory containing the input file
         else:
             self._win   = win
             self.efermi = efermi
             self.nwann  = nwann
+            self.path   = os.path.abspath(path)     # the directory containing the input file
 
         self._sys   = self._win[:-4]
         self.eig = self._sys + '.eig' if eig == None else eig
-        self.path = os.path.abspath(path)     # the directory containing the input file
         self.nbnds_excl = nbnds_excl
         self.ndeg   = ndeg      # denegeracy of bands, actually need to set 2 only meets Kramers degeneracy.
         self.eps    = eps     # tolerance for generate `dis_windows`
@@ -631,10 +632,12 @@ class W90():
         n_froz = self.count_states_most((dis['dis_froz_min'], dis['dis_froz_max']))
         n_win  = self.count_states_least((dis['dis_win_min'], dis['dis_win_max']))
         if n_froz > self.nwann:
-            logger.warning(f"There are {n_froz:3d} states inside frozen window but {self.nwann:3d} WFs given! \nFix `dis windows` as following".ljust(80, ' '))
+            logger.warning(f"There are {n_froz:3d} states inside frozen window but {self.nwann:3d} WFs given!".ljust(80, ' '))
+            logger.warning("Fix `dis windows` as following".ljust(80, ' '))
             return False
         if n_win < self.nwann:
-            logger.warning(f"There are {n_win:3d} states inside dis window but {self.nwann:3d} WFs given!\nFix `dis windows` as following".ljust(80, ' '))
+            logger.warning(f"There are {n_win:3d} states inside dis window but {self.nwann:3d} WFs given!".ljust(80, ' '))
+            logger.warning("Fix `dis windows` as following".ljust(80, ' '))
             return False
         return True
 

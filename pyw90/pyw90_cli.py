@@ -8,7 +8,7 @@
 
 import subprocess
 import signal
-import os
+import os, sys
 import argparse
 import shutil
 
@@ -128,17 +128,19 @@ def auto(args):
     r'''
     (Auto Wannier90 Fit) Using minimize method to choose the most suitable energy windows.
     '''
-    path = os.path.dirname(os.path.realpath(__file__))
+    path    = os.path.dirname(os.path.realpath(__file__))
+    environ = dict(os.environ)
     if args.mode.lower()[0] == 'r':  # run
         log  = os.path.join(args.path, 'auto_w90_output.txt')
-        p = subprocess.Popen(['python', os.path.join(path, 'auto_w90_fit.py')],
+        p = subprocess.Popen([sys.executable, os.path.join(path, 'auto_w90_fit.py'), '--path', args.path, "--environ", str(environ)],
+                               env    = environ,
                                stdin  = subprocess.DEVNULL,
                                stdout = open(log, 'w'),
                                stderr = open(log, 'w'),
                                start_new_session=True)
         print(f'Auto-W90-Fit run with PID: {p.pid}')
     elif args.mode.lower()[0] == 'i':   # input
-        print(f'Create example input file for `auto` menu at local folder')
+        print(f'Create example input file for `auto` menu at input folder')
         shutil.copy(os.path.join(path, 'auto_w90_input.yaml'), os.getcwd())
     elif args.mode.lower()[0] == 't':   # terminate
         print(f'Kill the job with PID {args.pid} as listed')
@@ -161,10 +163,10 @@ def auto(args):
             return
         elif usr_input[0].isdigit():
             usr_input_pid = [int(i.strip()) for i in usr_input.split(',')]
-            for upid in all_pid:
+            for upid in usr_input_pid:
                 if upid in all_pid:
                     os.killpg(os.getpgid(upid), signal.SIGTERM)  # Send the signal to all the process groups
-            config = Config(yaml_file='auto_w90_input.yaml')
+            config = Config(yaml_file=os.path.join(args.path, 'auto_w90_input.yaml'))
             jobs = Job(config)
             jobs.cancel()
         else:

@@ -13,7 +13,7 @@ class Config():
     r'''
     config
     '''
-    def __init__(self, yaml_file:str=None):
+    def __init__(self, yaml_file:str=None, environ=None):
         r'''
         Parse input parameters from `.yaml` file. If there is no specific `.yaml` file given, class will treat the first `.yaml` file as config file.
         '''
@@ -23,16 +23,20 @@ class Config():
                 yaml_file = yaml_file_list[0]
             else:
                 raise ValueError('There is no `.yaml` file in this folder!')
-        with open(os.path.join(os.getcwd(), yaml_file),'r', encoding='utf-8') as f:
+        with open(yaml_file, 'r', encoding='utf-8') as f:
             data = yaml.load(f, Loader=yaml.FullLoader)
         
         self.local    = data['local']
-        self.path     = os.getcwd()
+        self.path     = os.path.dirname(yaml_file)  # os.getcwd()
         self.win      = data['winfile']
         self.vasp_bnd = data['vasp_band_file']
         self.w90_bnd  = data['wann_band_file']
         self.job_name = data['jobname']
         self.usr_name = data['username']
+        if environ != None:
+            self.environ  = environ
+        else:
+            self.environ  = dict(os.environ)
 
         if not self.local:
             self.run      = data['runfile']
@@ -91,17 +95,17 @@ class Config():
         # check files exist or not
         if self.local:
             for file in [self.win, self.vasp_bnd]:
-                if not os.path.isfile(file):
-                    raise FileNotFoundError('File {0} Not Found!'.format(file))
+                if not os.path.isfile(os.path.join(self.path, file)):
+                    raise FileNotFoundError(f'File {os.path.join(self.path, file)} Not Found!')
         else:
             for file in [self.win, self.run, self.vasp_bnd]:
-                if not os.path.isfile(file):
-                    raise FileNotFoundError('File {0} Not Found!'.format(file))
+                if not os.path.isfile(os.path.join(self.path, file)):
+                    raise FileNotFoundError(f'File {os.path.join(self.path, file)} Not Found!')
 
             # TODO : add PBS job queue system support
             # check job name
             pattern = r'^\s*#\s*SBATCH -(\-job\-name|J)\s*=?(.+)\n'
-            with open(self.run) as f:
+            with open(os.path.join(self.path, self.run)) as f:
                 lines = f.readlines()
             for line in lines:
                 m = re.match(pattern, line)
@@ -118,8 +122,8 @@ class Config():
                 raise ValueError('The username is inconsistent! Your username is {0}. But it\'s {1} in settings.yaml file instead.'.format(local_usr_name, self.usr_name))
 
         # check Fermi level
-        if 'vasprun.xml' in os.listdir():
-            efermi_str = os.popen(f'grep fermi vasprun.xml').read().strip()
+        if 'vasprun.xml' in os.listdir(os.path.join(self.path)):
+            efermi_str = os.popen(f'grep fermi {os.path.join(self.path, "vasprun.xml")}').read().strip()
             m = re.match('.+ ((\-|\+)?\d+(\.\d+)?) .+', efermi_str)
             efermi = float(m.groups()[0])
             if np.abs(efermi - self.efermi) < 1e-6:

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyw90"
-version = "1.0.2"
+version = "1.0.4"
 description = "A tool interfaced to VASP and Wannier90 with projection analysis and automatically dis energy window optimization"
 authors = ["En Wang (Cloudiiink) <wangenzj@gmail.com>"]
 license = "GPL-3.0-only"
@@ -26,7 +26,7 @@ pandas = "*"
 matplotlib = ">=3.4"
 
 [tool.poetry.scripts]
-pyw90 = "pyw90.pyw90:main_cli"
+pyw90 = "pyw90.pyw90_cli:main_cli"
 
 [tools.poetry.urls]
 "Bug Tracker" = "https://github.com/Cloudiiink/pyw90/issues"
