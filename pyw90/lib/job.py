@@ -93,10 +93,10 @@ class Job():
         Noticed: Allow to submit only when there are no job with the same name
         '''
         if self.local:
-            p = subprocess.run(self.localrun.split(),
-                               cwd=self.path,
-                               env=self.config.environ,
-                               start_new_session=True, text=True)
+            p = subprocess.Popen(self.localrun.split(),
+                                 cwd=self.path,
+                                 env=self.config.environ,
+                                 start_new_session=True)
             logger.debug(f'{self.job_name} run with PID: {p.pid}'.ljust(80, ' '))
             self.p = p
         else:

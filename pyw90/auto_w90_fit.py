@@ -55,7 +55,8 @@ def main_task(opt_input:ArrayLike, w90:W90) -> float:
 
     w90_bnd = os.path.join(w90.path, w90.config.w90_bnd)
     mtime = time.ctime(os.path.getmtime(w90_bnd))
-    logger.info(f'`{w90_bnd}` was last modified at {mtime}.'.ljust(80, ' '))
+    logger.info(f'{os.path.abspath(w90_bnd)}'.ljust(80, ' '))
+    logger.info(f'    was last modified at {mtime}.'.ljust(80, ' '))
     logger.info('Evaluating the quality ...'.ljust(80, ' '))
 
     res = w90.evaluate()
@@ -70,8 +71,8 @@ if __name__ == '__main__':
 
     strtime = time.strftime(r'%Y%m%d%H%M%S', time.localtime())
     logfilename = 'log_autow90_{0}.log'.format(strtime)
-    # logging.basicConfig(level=logging.DEBUG,     # logging.INFO
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(level=logging.DEBUG,     # logging.INFO
+    # logging.basicConfig(level=logging.INFO,
                         filename=os.path.join(args.path, logfilename),
                         datefmt='%H:%M:%S',
                         format='%(message)s ! %(asctime)s/%(levelname)s/%(module)s/%(lineno)d')
