@@ -11,6 +11,7 @@ import signal
 import os, sys
 import argparse
 import shutil
+import pandas as pd
 
 # pyw90
 from pyw90.lib.w90 import W90
@@ -34,7 +35,7 @@ def get_args():
     # show distribution of eigenvalues
     parser_eig.add_argument('mode', help='Mode: report, plot, count, suggest')
     parser_eig.add_argument('-e', dest='erange', action='store', type=float,
-                            default=None, nargs=2,
+                            default=[-1e3, 1e3], nargs=2,
                             help='Energy range.')
     parser_eig.add_argument('--config', action='store_true', default=False,
                             help='Read input from config file `auto_w90_input.yaml` directly. Default: False')
@@ -178,6 +179,8 @@ def auto(args):
         bc.cprint(bc.RED, 'Input Y(es) / N(o) (Or input the pid listed above you want to terminate): ')
         bc.cprint(bc.RED, 'IMPORTANT: If you run task local, input the `auto_w90_fit.py` and `wannier90.x` separate with comma (e.g. 2101, 2121)')
         bc.cprint(bc.RED, '           Otherwise `auto_w90_fit.py` will repeatedly submit new tasks.')
+        bc.cprint(bc.RED, '           As we must supply all of the environment via command line, the command `auto_w90_fit.py`')
+        bc.cprint(bc.RED, '           may get quite huge.')
         usr_input = input()
         if usr_input.lower()[0] == 'y':
             os.killpg(os.getpgid(args.pid), signal.SIGTERM)  # Send the signal to all the process groups
@@ -285,15 +288,21 @@ def eig(args):
         bc.cprint(bc.BLUE, '    Column `dis_win_max` shows the **lowest** dis_win_max for `dis_win_min`\n' \
                            '    Column `i+1_min` / `i_max` shows the band minimum / maximum near the gap\n' \
                            '    Column `Nleast`  / `Nmost` shows the least / most number of states inside `dis_win_min` and Fermi level.\n')
-        df = w90.suggest_win_table()
-        print(df)
+        df_win = w90.suggest_win_table()
+        print(df_win)
 
         # suggest frozen window with given energy interval
         bc.cprint(bc.RED, '\n`dis_froz_min` and `dis_froz_max` Table:')
         bc.cprint(bc.BLUE, f'    Suggest `dis_froz_min` & `dis_froz_max` as following with #WFs = {w90.nwann} from input')
         bc.cprint(bc.BLUE,  '    Use `pre dos` menu to get suggestions based on projected density of states\n')
-        df = w90.get_dis_froz_df(args.erange)
-        print(df)
+        df_froz_list = []
+        for win_min in df_win['dis_win_min']:
+            erange = win_min, max(args.erange)
+            df = w90.get_dis_froz_df(erange)
+            df_froz_list.append(df)
+        df_froz = pd.concat(df_froz_list, ignore_index=True).drop_duplicates()
+        df_froz = df_froz.sort_values('dis_froz_min')
+        print(df_froz)
 
     else:
         bc.cprint(bc.BLUE, f'Unsupported mode: {args.mode}')
