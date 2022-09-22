@@ -112,11 +112,6 @@ The basic procedure of generate `dis_froz_max` is count how many states at least
 
 To avoiding situation above, we add additional check whether there are skipped states between the input $E_{\text{fmin}}$ and the `dis_froz_min`. If there exist $\Delta N$ skipped states, we will go through to check all situation of with $N'_{\text{WF}}=N_{\text{WF}}-1, \cdots, N_{\text{WF}}-\Delta N$ to generate possible dis frozen energy windows.
 
-**Example output:**
-```
-$
-```
-
 ### 2. `pre` Menu
 
 This menu offers some basic input of `Wannier90`. The help message of `pre` menu is listed as below.
@@ -176,12 +171,6 @@ The `lb` argument is used to as lower bound to select the most reprentitive proj
 The selected information will be converted to the format for `projection` block in `Wannier90`. These projection information will also be printed as `key_string` format for `pyw90` input. (The represention of orbital is `orb_id`. Default delimeter for keys inside one species is comma and the delimeter between species is ;. )
 
 With `--extra` input in `dos` mode and `-e` given energy interval, we will also present the dis frozen window suggestion based on pdos. The result will be presented with columns including `dis_froz_min`, `dis_froz_max`, `N`, `pdos`, `tdos` and `percent`. The final column of table is the percentage of pdos/tdos. The full table is also sorted with `percent` in descending order. The lower bound of `dis_win_max` is also generated.
-
-**Example output**
-```
-$
-
-```
 
 **Note:**
 
@@ -573,7 +562,9 @@ If you want to terminate the automated task, type `pyw90 auto term` and follow t
 
 ###  Show quality of Wannier functions
 
-Figure `{name}_VASP_W90_cmp.png` will be generated with both `VASP` and `Wannier90` band structure plotted. You can also use `--config` to read the `efermi` and `kernel` parameters from configuration file `auto_w90_input.yaml` directly.
+Figure `{name}_VASP_W90_cmp.pdf` will be generated with both `VASP` and `Wannier90` band structure plotted. You can also use `--config` to read the `efermi` and `kernel` parameters from configuration file `auto_w90_input.yaml` directly.
+
+![](image/GaAs_VASP_W90_cmp.png)
 
 ```
 $ pyw90 cmp GaAs --efermi 3.468 --kernel unit,3.5,1

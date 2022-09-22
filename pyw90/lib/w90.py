@@ -470,10 +470,10 @@ class W90():
 
     def plot_cmp_vasp_w90(self, name:str, ylim=None, font="Open Sans", size=18):
         r'''
-        Plot VASP band and Wannier90 band with legend. The file name is `{name}_VASP_W90_cmp.png`
+        Plot VASP band and Wannier90 band with legend. The file name is `{name}_VASP_W90_cmp.pdf`
         '''
         self.update_bands()
-        output_figure = os.path.join(self.path, f'{name}_VASP_W90_cmp.png')
+        output_figure = os.path.join(self.path, f'{name}_VASP_W90_cmp.pdf')
 
         # general options for plot
         plt.rcParams['font.family'] = font
@@ -499,12 +499,20 @@ class W90():
         with open(labelinfo, 'r') as f:
             lines = f.readlines()
         label = [l.split()[0] for l in lines]
-        logger.info(f"k label: {label}")
-        k_node = [eval(l.split()[2]) for l in lines]
+        # print(f"k label: {label}")
+        k_node = np.array([eval(l.split()[2]) for l in lines])
         for i, lab in enumerate(label):
             if lab[-1].isdigit():
                 label[i] = lab[:-1] + r'$_' + lab[-1] + r'$'
-    
+        k_node, idx = np.unique(k_node, return_index=True)
+        # merge the kpoint
+        new_label = []
+        idx = list(idx) + [None]
+        for i, j in zip(idx[:len(idx)-1], idx[1:]):
+            lab = label[i] if j == None or j - i == 1 else '|'.join(label[i:j])
+            new_label.append(lab)
+        label = new_label
+
         ax.set_xlim(k_node[0], k_node[-1])
         # put tickmarks and labels at node positions
         ax.set_xticks(k_node)
@@ -532,8 +540,9 @@ class W90():
                   prop={'size': 14})
 
         # plt.show()
-        # plt.savefig(output_figure,  bbox_inches='tight', transparent=True, dpi=300)
-        plt.savefig(output_figure,  bbox_inches='tight', dpi=300)
+        # plt.savefig(output_figure, bbox_inches='tight', transparent=True, dpi=300)
+        # plt.savefig(output_figure, bbox_inches='tight', dpi=300)
+        plt.savefig(output_figure, bbox_inches='tight')
 
     def evaluate(self, mode:str='AbAk', kernel=None) -> float:
         r"""

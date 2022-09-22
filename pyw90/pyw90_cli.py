@@ -229,7 +229,7 @@ def cmp(args):
         kernel = parse_kernel(kernel_str, mid, width)
     
     bc.cprint(bc.BLUE, f"The output figure should be stored at")
-    bc.cprint(bc.BLUE, f"    {os.path.join(args.path, args.name+'_VASP_W90_cmp.png')}")
+    bc.cprint(bc.BLUE, f"    {os.path.join(args.path, args.name+'_VASP_W90_cmp.pdf')}")
     w90.plot_cmp_vasp_w90(args.name, ylim=args.ylim,
                           font=args.fontfamily, size=args.fontsize)
 
