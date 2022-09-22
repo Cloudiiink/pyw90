@@ -160,26 +160,28 @@ class W90():
                 'Begin Kpoint_Path\n' \
                 'End Kpoint_Path\n')
         elif flag == 'basic':
-            print('num_wann  = 8\n' \
+            print('num_wann  = 6\n' \
                 '# num_bands = 15\n' \
                 '\n' \
+                'exclude_bands : 1-5\n' \
+                '\n' \
                 'begin projections\n' \
-                'Ga:l=0;l=1\n' \
-                'As:l=0;l=1\n' \
+                'Ga:l=1\n' \
+                'As:l=1\n' \
                 'end projections\n' \
                 '\n' \
                 '# spinors = .true.\n')
         else:
             print('Unknown flag: ', flag)
 
-    def plot_eigenval(self, erange:Tuple[float,float]=None, separate:bool=False, savefig:str='eigenval_dis.png'):
+    def plot_eigenval(self, erange:Tuple[float,float]=None, separate:bool=False, savefig:str='eigenval_dis.pdf'):
         r'''
         Plot the eigenvalue distribution of each bands. When `separate` is `False`, we will merge the distribution of bands when there is no global gap.
 
         ### Parameters
         - `erange`: The energy interval you concerned about.
         - `separate`: Control whether to merge the bands without the global gap or not. Default is `False`.
-        - `savefig`: The file name of saved image result.
+        - `savefig`: The file name of saved image result. default: eigenval_dis.pdf
         '''
         plt.rcParams['font.family'] = "Open Sans"
 
@@ -220,7 +222,7 @@ class W90():
 
         # dont merge bands without global gap
         else:
-            savefig = savefig.split('.')[0] + '_separate.png'
+            savefig = savefig[:-4] + '_separate.pdf'
             idx = np.arange(self.nbnds_excl, self.nbnds-1, self.ndeg) if self.nbnds_excl else np.arange(0, self.nbnds-1, self.ndeg)
             ymin, ymax = erange if erange else (-1e4, 1e4)
             for i in idx:

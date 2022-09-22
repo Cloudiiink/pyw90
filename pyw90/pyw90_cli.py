@@ -36,7 +36,7 @@ def get_args():
     parser_eig.add_argument('mode', help='Mode: report, plot, count, suggest')
     parser_eig.add_argument('-e', dest='erange', action='store', type=float,
                             default=[-1e3, 1e3], nargs=2,
-                            help='Energy range.')
+                            help='Energy range. Default: [-1e3, 1e3]')
     parser_eig.add_argument('--config', action='store_true', default=False,
                             help='Read input from config file `auto_w90_input.yaml` directly. Default: False')
     parser_eig.add_argument('--path', default='.',
@@ -70,7 +70,7 @@ def get_args():
                             help='The path of working dir. Default: .')
     parser_pre.add_argument('-e', dest='erange', action='store', type=float,
                             default=[-1e3, 1e3], nargs=2,
-                            help='Energy range.')
+                            help='Energy range. Default: [-1e3, 1e3]')
     parser_pre.add_argument('--lb', action='store', type=float, default=0.1,
                             help='Lower bound for selected orbital / max single orbital. default: 0.1')
     parser_pre.add_argument('--rm-fermi', action='store_true', default=False,
@@ -269,7 +269,7 @@ def eig(args):
 
     if args.mode[0].lower() == 'p': # plot
         w90.plot_eigenval(erange=erange, separate=args.separate,
-                          savefig=os.path.join(os.getcwd(), 'eigenval_dis.png'))
+                          savefig=os.path.join(os.getcwd(), 'eigenval_dis.pdf'))
     elif args.mode[0].lower() == 'r': # report
         w90.report_eigenval(erange=erange, separate=args.separate)
     elif args.mode[0].lower() == 'c': # count
@@ -291,18 +291,19 @@ def eig(args):
         df_win = w90.suggest_win_table()
         print(df_win)
 
-        # suggest frozen window with given energy interval
-        bc.cprint(bc.RED, '\n`dis_froz_min` and `dis_froz_max` Table:')
-        bc.cprint(bc.BLUE, f'    Suggest `dis_froz_min` & `dis_froz_max` as following with #WFs = {w90.nwann} from input')
-        bc.cprint(bc.BLUE,  '    Use `pre dos` menu to get suggestions based on projected density of states\n')
-        df_froz_list = []
-        for win_min in df_win['dis_win_min']:
-            erange = win_min, max(args.erange)
-            df = w90.get_dis_froz_df(erange)
-            df_froz_list.append(df)
-        df_froz = pd.concat(df_froz_list, ignore_index=True).drop_duplicates()
-        df_froz = df_froz.sort_values('dis_froz_min')
-        print(df_froz)
+        if w90.nwann > 0:
+            # suggest frozen window with given energy interval
+            bc.cprint(bc.RED, '\n`dis_froz_min` and `dis_froz_max` Table:')
+            bc.cprint(bc.BLUE, f'    Suggest `dis_froz_min` & `dis_froz_max` as following with #WFs = {w90.nwann} from input')
+            bc.cprint(bc.BLUE,  '    Use `pre dos` menu to get suggestions based on projected density of states\n')
+            df_froz_list = []
+            for win_min in df_win['dis_win_min']:
+                erange = win_min, max(args.erange)
+                df = w90.get_dis_froz_df(erange)
+                df_froz_list.append(df)
+            df_froz = pd.concat(df_froz_list, ignore_index=True).drop_duplicates()
+            df_froz = df_froz.sort_values('dis_froz_min')
+            print(df_froz)
 
     else:
         bc.cprint(bc.BLUE, f'Unsupported mode: {args.mode}')

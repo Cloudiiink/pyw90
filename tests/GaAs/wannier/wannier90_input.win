@@ -1,9 +1,9 @@
-num_wann  = 8
+num_wann  = 86
 # num_bands = 15
 
 begin projections
-Ga:l=0;l=1
-As:l=0;l=1
+Ga:l=1
+As:l=1
 end projections
 
 # spinors = .true.

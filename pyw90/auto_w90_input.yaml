@@ -14,7 +14,7 @@ wann_band_file: ./wannier90_band.dat
 
 # system
 jobname: w90
-username: enwang
+username: your_user_name
 
 # run at the local machine not via SLURM
 # ! YOU HAVE TO KNOWN WHAT YOU ARE DOING
@@ -34,7 +34,7 @@ localrun: wannier90.x wannier90
 
 # band structure
 # the fermi level of this system
-efermi: 3.467
+efermi: 3.468
 # kernal function used to evalute the quality of Wannier90 band
 kernel: [unit, 3.5, 1]
 # number of WFs
