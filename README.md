@@ -72,7 +72,7 @@ positional arguments:
 
 optional arguments:
   -h, --help        show this help message and exit
-  -e ERANGE ERANGE  Energy range.
+  -e ERANGE ERANGE  Energy range. Default: [-1e3, 1e3]
   --config          Read input from config file `auto_w90_input.yaml` directly.
                     Default: False
   --path PATH       The path of working dir. Default: .
@@ -110,6 +110,11 @@ The basic procedure of generate `dis_froz_max` is count how many states at least
 
 To avoiding situation above, we add additional check whether there are skipped states between the input $E_{\text{fmin}}$ and the `dis_froz_min`. If there exist $\Delta N$ skipped states, we will go through to check all situation of with $N'_{\text{WF}}=N_{\text{WF}}-1, \cdots, N_{\text{WF}}-\Delta N$ to generate possible dis frozen energy windows.
 
+**Example output:**
+```
+$
+```
+
 ### 2. `pre` Menu
 
 This menu offers some basic input of `Wannier90`. The help message of `pre` menu is listed as below.
@@ -121,7 +126,7 @@ positional arguments:
 optional arguments:
   -h, --help        show this help message and exit
   --path PATH       The path of working dir. Default: .
-  -e ERANGE ERANGE  Energy range.
+  -e ERANGE ERANGE  Energy range. Default: [-1e3, 1e3]
   --lb LB           Lower bound for selected orbital / max single orbital.
                     default: 0.1
   --rm-fermi        Whether or not the input `erange` has removed the Fermi
@@ -169,6 +174,12 @@ The `lb` argument is used to as lower bound to select the most reprentitive proj
 The selected information will be converted to the format for `projection` block in `Wannier90`. These projection information will also be printed as `key_string` format for `pyw90` input. (The represention of orbital is `orb_id`. Default delimeter for keys inside one species is comma and the delimeter between species is ;. )
 
 With `--extra` input in `dos` mode and `-e` given energy interval, we will also present the dis frozen window suggestion based on pdos. The result will be presented with columns including `dis_froz_min`, `dis_froz_max`, `N`, `pdos`, `tdos` and `percent`. The final column of table is the percentage of pdos/tdos. The full table is also sorted with `percent` in descending order. The lower bound of `dis_win_max` is also generated.
+
+**Example output**
+```
+$
+
+```
 
 **Note:**
 
@@ -251,14 +262,16 @@ The configuration file is written in YAML format allowing `#` to comment. The co
 |`ini_dis`         | Initial dis energy windows dictionary. Input each value with indent. If some parameters is not needed, please set to `None` or `~`. | 
 |`opt_dis`         | Boolean dictionary control which parameters to optimize. `pyw90` will only optimized the key is `True`.  | 
 |`bounds`          | Boundary of energy window parameters. Please using `None` or `+/- inf` to set the boundary which is unbounded. Since there is also parameters correction during each iteration of `Wannier90`, you can set a really rough bound.| 
-|`num_print_check` | How many iteration to print check message once. Default: 1  |
+|`num_print_check` | How many iteration to print check message once. Default: 10 |
 |`check_time`      | How many seconds to check the job status once. The job status is examined via the result from `squeue` in SLURM system or `pid` when `local` is `True`. Default: 30 |
 |`display`         | Boolean dictionary control display the band difference (`diff`) and total spreading of Wannier functions (`spread`). Default: both `True`.   |
 
 
-**Before running your task, remenber to modify the value of each key to your own.**
+**Before running your task, remember to modify the value of each key to your own.**
 
 ### 4. `cmp` Menu
+
+This menu allows you compare the result from `Wannier90` and `VASP`. The help message of `cmp` menu is listed as below.
 
 ```
 usage: pyw90 cmp [-h] [--config] [--path PATH] [--efermi EFERMI] [--vasp VASP]
@@ -298,6 +311,305 @@ optional arguments:
   --quiet               Equal to --no-spreading --no-quality
 ```
 
+With `name` argument input, figure `name_VASP_W90_cmp.png` will be generated.
+
+![](image/GaAs_VASP_W90_cmp.png)
+
+`--path` argument defines where to get the necessary file with `--vasp` and `--seedname` locating the band structure data of `VASP` and `Wannier90`. You can also specify the Fermi level with `--efermi`. `--kernel` defines the kernel function as mentioned in `auto` section to evaluate the quality of `Wannier90` results. Default settings will show band difference message and the wannierization of total Wannier functions as shown below. With `--no-spread` or `--no-quality`, you can avoid one of the message. You can use `--quiet` to block either messages.
+
+```
++-----+--------------------------------++-----+--------------------------------+
+|   i | MAX DIFF (meV)                 ||   i | AVERAGE DIFF (meV)             |
++-----+--------------------------------++-----+--------------------------------+
+|   1 |████ 0.36                       ||   1 |██████ 0.12                     |
+|   2 |████████████ 1.10               ||   2 |█████████████████████ 0.36      |
+|   3 |██████████████████████ 1.88     ||   3 |██████████████████████ 0.38     |
+|   4 |███████████████ 1.32            ||   4 |██████████████ 0.25             |
+|   5 | 0.00                           ||   5 | 0.00                           |
+|   6 | 0.00                           ||   6 | 0.00                           |
++-----+--------------------------------++-----+--------------------------------+
+
+Spreading for each iteration is displayed below
+Spread (Ang^2) in `./wannier90.wout`:                                           
++-----+--------------------------------++-----+--------------------------------+
+|   i | Spread                         ||   i | Spread                         |
++-----+--------------------------------++-----+--------------------------------+
+|   1 |████████████████████ 86.8       ||  15 |████ 21.4                       |
+|   2 |███████████████████ 86.5        ||  16 |████ 21.4                       |
+|   3 |██████████ 45.8                 ||  17 |████ 21.4                       |
+|   4 |█████ 22.1                      ||  18 |████ 21.4                       |
+|   5 |████ 21.6                       ||  19 |████ 21.4                       |
+|   6 |████ 21.5                       ||  20 |████ 21.4                       |
+|   7 |████ 21.5                       ||  21 |████ 21.4                       |
+|   8 |████ 21.4                       ||  22 |████ 21.4                       |
+|   9 |████ 21.4                       ||  23 |████ 21.4                       |
+|  10 |████ 21.4                       ||  24 |████ 21.4                       |
+|  11 |████ 21.4                       ||  25 |████ 21.4                       |
+|  12 |████ 21.4                       ||  26 |████ 21.4                       |
+|  13 |████ 21.4                       ||  27 |████ 21.4                       |
+|  14 |████ 21.4                       ||  28 |                                |
++-----+--------------------------------++-----+--------------------------------+
+```
+
+**Arguments for plotting:**
+
+- `ylim` : the limitation of y-axis.
+- `fontfamily` : Font used in plotting. One can also print all the avaible fonts via `--show-fonts`.
+- `fontsize`: Font size used in plotting.
 
 ## Example
 
+The folder structure looks like. Here we won't mention too much details as assuming you can prepare all the needed file for `Wannier90`.
+Next example usage of `pyw90` is shown with name of current/working directory is
+`wannier`.
+
+```
+tests/GaAs
+├── bnd
+│   ├── INCAR
+│   ├── KPOINTS  
+│   └── POSCAR
+├── wannier
+│   ├── afolder  
+│   ├── wannier90_input.win
+│   └── wannier90.win 
+├── GaAs_mp-2534_primitive.cif
+├── INCAR 
+├── KPOINTS
+├── POSCAR
+├── run.script
+└── vasprun.xml
+```
+
+### Show the distribution of eigenvalues via `eig` menu
+
+```bash
+$ pyw90 eig report --path ..
+
+Calculated Energy Range: -1000.0, 1000.0 with Fermi level 3.468000
+EFERMI:  3.468000
+--------------------------------
+Band No.     EMIN        EMAX
+--------------------------------
+  0~  0   -11.34770   -11.25584
+  1~  2   -11.25584   -11.21526
+  3~  4   -11.20921   -11.17821
+  5~  5    -8.90723    -6.59221
+  6~  8    -3.10923    +3.46765
+  9~ 15    +3.61014   +17.33278
+--------------------------------
+```
+
+You can also add `--separate` argument or use `plot` mode to get the energy range of each band and get the figure output `eigenval_dis(_separate).pdf` at current folder.
+
+![](/image/eigenval_dis_cmp.png)
+
+Get `dis_win_min` and `dis_win_max` suggestion as following (you can also input `-w` if you make a guess).
+
+```
+$ pyw90 eig suggest --path ..
+
+Calculated Energy Range: -1000.0, 1000.0 with Fermi level 3.468000
+There are at most 16 states and at least 16 states in [-1000.0, 1000.0].
+
+`dis_win_min` and `dis_win_max` Table:
+    Column `dis_win_max` shows the **lowest** dis_win_max for `dis_win_min`
+    Column `i+1_min` / `i_max` shows the band minimum / maximum near the gap
+    Column `Nleast`  / `Nmost` shows the least / most number of states inside `dis_win_min` and Fermi level.
+
+   dis_win_min  dis_win_max    i+1_min      i_max  Nleast  Nmost
+2    -4.850718    -6.588207  -3.109228  -6.592207       3      3
+1   -10.042721   -11.174209  -8.907233 -11.178209       4      4
+0   -11.212233   -11.211260 -11.209206 -11.215260       6      6
+```
+
+### Show projection suggestion and create `Wannier90` input file
+
+Here we consider the energy interval with [-1, 1] near the Fermi level 
+and obtain the most reprentative projection suggestion.
+
+You can also modify the lower selection bound via `--lb` argument to see the chage of outputs.
+
+```
+$ pyw90 pre dos --path .. -e -1 1 --rm-fermi --plot
+
+Reading vasprun.xml file from
+    `/path/to/vasprun.xml` 
+for DOS analysis...
+    Fermi level : 3.46800 eV
+    DOS Gap     : 0.46600 eV
+
+Calculated DOS Energy Range: 2.468, 4.468
+
+
+   species  structure_id  orb_id orb_name key_string       dos
+11      As             1       2       pz    As_1_pz  1.000000
+10      As             1       1       py    As_1_py  0.518581
+2       Ga             0       2       pz    Ga_0_pz  0.362974
+12      As             1       3       px    As_1_px  0.333035
+1       Ga             0       1       py    Ga_0_py  0.182324
+3       Ga             0       3       px    Ga_0_px  0.134955
+6       Ga             0       6      dz2   Ga_0_dz2  0.082642
+0       Ga             0       0        s     Ga_0_s  0.043391
+8       Ga             0       8      dx2   Ga_0_dx2  0.029531
+9       As             1       0        s     As_1_s  0.024745
+5       Ga             0       5      dyz   Ga_0_dyz  0.023917
+4       Ga             0       4      dxy   Ga_0_dxy  0.022256
+15      As             1       6      dz2   As_1_dz2  0.011725
+7       Ga             0       7      dxz   Ga_0_dxz  0.011414
+17      As             1       8      dx2   As_1_dx2  0.004456
+13      As             1       4      dxy   As_1_dxy  0.004176
+14      As             1       5      dyz   As_1_dyz  0.004174
+16      As             1       7      dxz   As_1_dxz  0.001948
+
+Based on your input, set the lower selection bound to 0.1 and 6 orbitals are selected.
+Number of WFs selected: 6 (with degeneracy 1)
+
+Orbitals Selected: 
+  species site  orb
+0      Ga   -1  [p]
+1      As   -1  [p]
+
+Wannier90 Projection:
+Ga:l=1
+As:l=1
+
+pyw90 --extra input:
+Ga,0,1-3;As,1,1-3
+
+Plotted with selected orbitals in `brown` and non-selected orbitals in `orange`.
+Plotted with a total of 14 orbitals, 6 of which are selected.
+Figure should be stored at /current/working/folder/dos_analysis.pdf
+```
+
+![](image/dos_analysis.png)
+
+Then we can change the energy interval to a very large energy interval such as [-4.85, 20] (-4.85 is obtained from the previous result from `eig` menu).
+
+```
+$ pyw90 pre dos --path .. -e -4.85 20 --extra 'Ga,0,1-3;As,1,1-3'
+
+Calculated DOS Energy Range: -4.85, 20.0
+
+/public/home/enwang/pyw90/pyw90/lib/dos.py:294: UserWarning: CHECK YOUR INPUT! The energies in `EIGENVAL` is ranged from -15.0 to 15.0, which does not include all the energy ranged from -4.85 to 20.0 you input.
+  warnings.warn(f'CHECK YOUR INPUT! The energies in `EIGENVAL` is ranged from {ee.min()} to {ee.max()}, ' \
+    WANRING: There are 1 states between given `emin`: -4.85 and lowest `dis_froz_min`: -11.174209000000001. 
+    Please carefully consider the suggestion of dis frozen window and double-check energy range of each band.
+    This is a frequent occurrence in no-SOC systems with numerous denegeracy point.
+    However, we still want to provide you with some alternative energy window options.
+
+Dis frozen window table
+The table is sorted according to the percentage of pdos/tdos.
+If you want to see `dis_win_min(max)` suggestion, please use `pyw90 eig suggest` menu.
+   dis_froz_min  dis_froz_max  N      pdos       tdos   percent
+5     -4.850000      7.174749  5  3.343966   8.991494  0.371903
+1      3.471648     10.658571  4  2.112846   6.822463  0.309690
+4      7.464314     18.000000  6  3.166871  10.782830  0.293696
+3      3.471649     12.386890  6  3.098248  10.639050  0.291215
+2      3.471649     12.060069  5  3.160086  11.136491  0.283760
+0    -11.174209      7.174749  6  2.312163  13.604458  0.169956
+
+Lowest `dis_win_max` for -4.85: 13.098955
+```
+
+So we obtained one initial guess of Wannier function. Then we can get the template for `wannier90.win` for `Wannier90` and `VASP` interface via `pyw90 pre template --extra basic`. Since `VASP` (<6.0) only supports `Wannier90` with version 1.2. You can modify and recompile `VASP` to calculate non-collinear Wannier functions and support spinor projection method. For further details, please refer to [Chengcheng-Xiao/VASP2WAN90_v2_fix: An updated version of the VASP2WANNIER90v2 interface](https://github.com/Chengcheng-Xiao/VASP2WAN90_v2_fix).
+
+```
+num_wann  = 6
+# num_bands = 15
+
+exclude_bands : 1-5
+
+begin projections
+Ga:l=1
+As:l=1
+end projections
+
+# spinors = .true.
+```
+
+This `wannier90.win` should be created in `GaAs/wannier` folder. You also have to set `LWANNIER90 = .TRUE.` in `VASP` to interface between `VASP` and `Wannier90`.
+This feature is only present if VASP is compiled with `-DVASP2WANNIER90` or `-DVASP2WANNIER90v2`. 
+
+Other inputs is set automatically based on the `VASP` calculation, such as `kpoints`, `atoms`, `unit_cell`, `mp_grid` etc.
+
+> With VASP (>= 6.2.0), it will support `Wannier90` >=3.0. And the `wannier90.win` input can also directly input via `INCAR` with `WANNIER90_WIN` (See [WANNIER90_WIN - Vaspwiki](https://www.vasp.at/wiki/index.php/WANNIER90_WIN)) and no more initial `wannier90.win` file needed.
+
+After running the task, `VASP` will write the input files for a preceeding `WANNIER90` run: `wannier90.win`, `wannier90.mmn`, `wannier90.eig` and `wannier90.amn`.
+
+Here we write the initial guess of dis energy window and band structure calculation card into `wannier90.win` file. The `Kpoint_Path` block can be obtained from `pyw90 pre kpath --path ../bnd`
+
+```
+# disentanglement and wannierization
+dis_win_max       = 13.098955
+dis_froz_max      =  7.174749
+dis_froz_min      = -4.86
+dis_win_min       = -4.85
+
+num_iter          = 1000
+num_print_cycles  =   40
+dis_num_iter      = 5000
+dis_mix_ratio     =  1.0
+
+# Band Plot  
+# restart = plot
+write_hr          = true
+bands_plot        = true
+bands_num_points  = 151 
+bands_plot_format = gnuplot
+
+Begin Kpoint_Path
+End Kpoint_Path
+```
+
+Then we can use `pyw90 auto` menu to automated optimized the dis energy window. We have to create the configuration file `auto_w90_input.yaml` via `pyw90 auto input`. **Modify the configuration file to your own before run a calculation**. (see the document of `auto` menu above to see meaning of each key)
+
+Once you have prepared all the input, then type `pyw90 auto run` to run the procedure. There are two output files.
+- `auto_w90_output.txt` : record the stdout message.
+- `log_autow90_{timestamp_you_submit}.log` : record the full procedure of `Wannier90` input.
+
+If you want to terminate the automated task, type `pyw90 auto term` and follow the tips to kill all processes.
+
+###  Show quality of Wannier functions
+
+Figure `{name}_VASP_W90_cmp.png` will be generated with both `VASP` and `Wannier90` band structure plotted. You can also use `--config` to read the `efermi` and `kernel` parameters from configuration file `auto_w90_input.yaml` directly.
+
+```
+$ pyw90 cmp GaAs --efermi 3.468 --kernel unit,3.5,1
+
+Reading Data from .
+The output figure should be stored at
+    /current/working/folder/GaAs_VASP_W90_cmp.png
+Final Quality 0.324071 meV with dEs for each bands
++-----+--------------------------------++-----+--------------------------------+
+|   i | MAX DIFF (meV)                 ||   i | AVERAGE DIFF (meV)             |
++-----+--------------------------------++-----+--------------------------------+
+|   1 |████ 0.36                       ||   1 |██████ 0.12                     |
+|   2 |████████████ 1.10               ||   2 |█████████████████████ 0.36      |
+|   3 |██████████████████████ 1.88     ||   3 |██████████████████████ 0.38     |
+|   4 |███████████████ 1.32            ||   4 |██████████████ 0.25             |
+|   5 | 0.00                           ||   5 | 0.00                           |
+|   6 | 0.00                           ||   6 | 0.00                           |
++-----+--------------------------------++-----+--------------------------------+
+
+Spreading for each iteration is displayed below
+Spread (Ang^2) in `wannier90.wout`:                                             
++-----+--------------------------------++-----+--------------------------------+
+|   i | Spread                         ||   i | Spread                         |
++-----+--------------------------------++-----+--------------------------------+
+|   1 |████████████████████ 86.8       ||  15 |████ 21.4                       |
+|   2 |███████████████████ 86.5        ||  16 |████ 21.4                       |
+|   3 |██████████ 45.8                 ||  17 |████ 21.4                       |
+|   4 |█████ 22.1                      ||  18 |████ 21.4                       |
+|   5 |████ 21.6                       ||  19 |████ 21.4                       |
+|   6 |████ 21.5                       ||  20 |████ 21.4                       |
+|   7 |████ 21.5                       ||  21 |████ 21.4                       |
+|   8 |████ 21.4                       ||  22 |████ 21.4                       |
+|   9 |████ 21.4                       ||  23 |████ 21.4                       |
+|  10 |████ 21.4                       ||  24 |████ 21.4                       |
+|  11 |████ 21.4                       ||  25 |████ 21.4                       |
+|  12 |████ 21.4                       ||  26 |████ 21.4                       |
+|  13 |████ 21.4                       ||  27 |████ 21.4                       |
+|  14 |████ 21.4                       ||  28 |                                |
++-----+--------------------------------++-----+--------------------------------+
+```
