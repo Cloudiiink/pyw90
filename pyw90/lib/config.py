@@ -5,6 +5,7 @@ from scipy.optimize import Bounds, LinearConstraint
 
 from pyw90.utility.utility import parse_kernel
 from pyw90.utility.utility import _replace_str_boolean, _replace_str_none
+from getpass import getuser
 
 import logging
 logger = logging.getLogger(__name__)
@@ -26,13 +27,16 @@ class Config():
         with open(yaml_file, 'r', encoding='utf-8') as f:
             data = yaml.load(f, Loader=yaml.FullLoader)
         
-        self.local    = data['local']
+        self.local    = data.get('local', False)
+        self.seedname = data.get('seedname', 'wannier90')
         self.path     = os.path.dirname(yaml_file)  # os.getcwd()
-        self.win      = data['winfile']
-        self.vasp_bnd = data['vasp_band_file']
-        self.w90_bnd  = data['wann_band_file']
+        self.win      = self.seedname + '.win'
+        self.vasp_bnd = data.get('vasp_band_file', 'bnd.dat')
+        self.w90_bnd  = self.seedname + '_band.dat'
         self.job_name = data['jobname']
-        self.usr_name = data['username']
+        usr_name = getuser()
+        self.usr_name = data.get('username', usr_name)
+
         if environ != None:
             self.environ  = environ
         else:
@@ -46,9 +50,9 @@ class Config():
         self.efermi   = data['efermi']
         self.nwann    = data['nwann']
         # Minimization Related parameters
-        self.method   = data['method']
-        self.tol      = float(data['tol'])
-        self.maxiter  = int(data['maxiter'])
+        self.method   = data.get('method', 'COBYLA')
+        self.tol      = float(data.get('tol', 0.02))
+        self.maxiter  = int(data.get('maxiter', 100))
         self.niter    = 0
 
         kernel_str, mid, width = data['kernel']
@@ -84,9 +88,9 @@ class Config():
         #                                        self.ubs[self.mask],
         #                                        keep_feasible=True)
 
-        self.num_print_check = int(data['num_print_check'])
-        self.check_time = int(data['check_time'])
-        self.display = data['display']
+        self.num_print_check = int(data.get('num_print_check', 10))
+        self.check_time = int(data.get('check_time', 30))
+        self.display = data.get('display', {'diff': True, 'spread': True})
         # self.display = _replace_str_boolean(data['display'])
 
         self.check_input()
@@ -116,7 +120,6 @@ class Config():
                 raise ValueError('The jobname is inconsistent! In batch file the jobname is {0}. But it\'s {1} in settings.yaml file instead.'.format(run_file_job_name, self.job_name))
 
             # check user name
-            from getpass import getuser
             local_usr_name = getuser()
             if self.usr_name != local_usr_name:
                 raise ValueError('The username is inconsistent! Your username is {0}. But it\'s {1} in settings.yaml file instead.'.format(local_usr_name, self.usr_name))

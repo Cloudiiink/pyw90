@@ -247,14 +247,13 @@ With initial input dis energy window and suitable minimization method, we will g
 The configuration file is written in YAML format allowing `#` to comment. The contents are case-sensitive and they use indentation to indicate hierarchical relationships. Tabs are not allowed for indentation with only spaces allowed.
 
 | key              | description  |
-|------------------|---|
-|`winfile`         | File for `Wannier90` input. Default: `wannier90.win` | 
+|------------------|--------------|
+|`seedname`        | Seedname string. The `Wannier90` code will read its input from file `seedname.win`. The band structure will be written to `seedname_band.dat`.Default: `wannier90` | 
 |`runfile`         | Job file for SLURM job system to submit the `Wannier90` task  | 
 |`vasp_band_file`  | Band structure file of `VASP` in `p4vasp` format. This file can be generate via `pyw90 pre band`. Default: `bnd.dat`  | 
-|`wann_band_file`  | Band structure results of `Wannier90`. Default: `wannier90_band.dat`  | 
 |`jobname`         | Name of your task. | 
 |`username`        | Your username. `jobname` and `username` is used to identify which is the automated `Wannier90` job from `squeue` result. Default `username` is obtained from `getpass.getuser`.| 
-|`local`           | Boolean. If it's `True`, the `Wannier90` task will run via the input from `localrun` | 
+|`local`           | Boolean. If it's `True`, the `Wannier90` task will run via the input from `localrun`. Default: `False`. | 
 |`localrun`        | Command to run `Wannier90`. Only is used when `local: True`  | 
 |`efermi`          | Fermi level of material. | 
 |`kernel`          | Kernel funtion for evaluating the quality of `Wannier90` band structure result. Formatted input: type, middle, width (e.g. unit,0,1). Kernel functions are classified into two types: `unit` and `gaussian`. **The Fermi level is not subtracted from eigenvalues when using the kernel function to evaluate difference.**  | 

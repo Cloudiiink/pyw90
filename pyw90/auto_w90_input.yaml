@@ -7,10 +7,9 @@
 # ! - Modify the value of each keywords to your own.
 
 # File location
-winfile: ./wannier90.win
-runfile: ./w90.script
-vasp_band_file: ./bnd.dat
-wann_band_file: ./wannier90_band.dat
+runfile: w90.script
+vasp_band_file: bnd.dat
+seedname: wannier90
 
 # system
 jobname: w90

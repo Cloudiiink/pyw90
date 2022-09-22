@@ -68,11 +68,11 @@ class Job():
         num_jobs = self.get_num_jobs()
         logger.debug(f'Job <{self.job_name}> has `num_jobs` {num_jobs}'.ljust(80, ' '))
         if self.local:
-            logger.debug(f'Job <{self.job_name}> run with PID {self.p.pid}'.ljust(80, ' '))
+            logger.info(f'Job <{self.job_name}> run with PID {self.p.pid}'.ljust(80, ' '))
         while num_jobs > 0:
             check += 1
             if check % self.num_print_check == 0:
-                logger.debug(f'Job <{self.job_name}> is still running.'.ljust(80, ' '))
+                logger.info(f'Job <{self.job_name}> is still running.'.ljust(80, ' '))
             time.sleep(self.check_time)
             num_jobs = self.get_num_jobs()
 
