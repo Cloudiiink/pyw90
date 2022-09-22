@@ -72,7 +72,7 @@ def get_args():
     '''
     parser = argparse.ArgumentParser(description="Pre analysis before Wannier90 Interpolation. dos: pyw90 pre dos --plot -e -4 7 --extra 'Bi,4-7,0-3;F,8-23,1-3'", add_help=True)
 
-    parser.add_argument('mode', help='Mode: kpath, band, template, dos')
+    parser.add_argument('mode', help='Mode: kpath, band, template, dos. Only the first character is recognized.')
     parser.add_argument('--path', default='.',
                         help='Default: .')
     parser.add_argument('-e', dest='erange', action='store', type=float,

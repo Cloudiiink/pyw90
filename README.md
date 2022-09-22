@@ -61,6 +61,8 @@ This menu allows you have knowledge to the full distribution of eigenvalues. Thi
 
 The help message of `eig` menu is listed as below.
 
+**TODO change mode**
+
 ```
 usage: pyw90 eig [-h] [-e ERANGE ERANGE] [--config] [--path PATH] [-i EIG]
                  [--rm-fermi] [--efermi EFERMI] [-w NWANN] [-n NBNDS_EXCL]

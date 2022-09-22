@@ -30,10 +30,12 @@ def get_args():
     parser_eig  = subparsers.add_parser('eig' , help='Show distribution of eigenvalues.')
     parser_pre  = subparsers.add_parser('pre' , help='(Pre)-analysis before `Wannier90` Interpolation.')
     parser_auto = subparsers.add_parser('auto', help='(Auto Wannier90 Fit) Using minimize method to choose the most suitable dis energy windows.')
-    parser_cmp  = subparsers.add_parser('cmp' , help='(Comparison) Show difference between VASP bands and Wannier90 bands via plotting and report. `bnd.dat` for VASP band data in `p4vasp` format and `wannier90_band.dat`, `wannier90_band.labelinfo.dat`, and `wannier90.wout` are required for plotting and analysis.')
+    parser_cmp  = subparsers.add_parser('cmp' , help='(Comparison) Show difference between VASP bands and Wannier90 bands via plotting and report.' \
+                                                     '`bnd.dat` for VASP band data in `p4vasp` format and `wannier90_band.dat`, `wannier90_band.labelinfo.dat`,' \
+                                                     'and `wannier90.wout` are required for plotting and analysis.')
     
     # show distribution of eigenvalues
-    parser_eig.add_argument('mode', help='Mode: report, plot, count, suggest')
+    parser_eig.add_argument('mode', help='Mode: dist, count, suggest. Only the first character is recognized.')
     parser_eig.add_argument('-e', dest='erange', action='store', type=float,
                             default=[-1e3, 1e3], nargs=2,
                             help='Energy range. Default: [-1e3, 1e3]')
@@ -55,9 +57,11 @@ def get_args():
     parser_eig.add_argument('-n', dest='nbnds_excl', action='store', type=int,
                             default=0,
                             help='Number of bands excluded below the bands from `Wannier90`.')
-    parser_eig.add_argument('--deg', dest='ndeg', action='store', type=int,
+    parser_eig.add_argument('--deg', dest='deg', action='store', type=int,
                             default=1,
                             help='Number of degeneracy. Default: 1')
+    parser_eig.add_argument('--plot', default=False, action="store_true",
+                            help="Control whether to output the distribution as figure or not")
     parser_eig.add_argument('--separate', default=False, action="store_true",
                             help='Calculate bands not separately.')
     parser_eig.add_argument('--eps', action='store', type=float, default=4e-3,
@@ -65,7 +69,7 @@ def get_args():
     parser_eig.set_defaults(func=eig)
 
     # pre-process of VASP data
-    parser_pre.add_argument('mode', help='Mode: kpath, band, template, dos')
+    parser_pre.add_argument('mode', help='Mode: kpath, band, template, dos. Only the first character is recognized.')
     parser_pre.add_argument('--path', default='.',
                             help='The path of working dir. Default: .')
     parser_pre.add_argument('-e', dest='erange', action='store', type=float,
@@ -91,7 +95,7 @@ def get_args():
 
     # auto-wannier90-fit
     parser_auto.add_argument('mode', 
-                             help='Mode: run, term(inate), input. Only first character is recognized.')
+                             help='Mode: run, term(inate), input. Only the first character is recognized.')
     parser_auto.add_argument('--path', default='.',
                              help='The path of working dir. Default: .')
     parser_auto.add_argument('--pid', default=None, type=int,
@@ -112,9 +116,13 @@ def get_args():
     parser_cmp.add_argument('--seedname', dest='seedname', default='wannier90',
                             help="Seedname of Wannier90 input. Default: wannier90")
     parser_cmp.add_argument('--ylim', default=None, nargs=2, type=float,
-                            help="Energy bound for plot. Since the Fermi level has been shift to 0 during the plotting, please mind your input. Default: [E_w90.min - 1, E_w90.max + 1]")
+                            help="Energy bound for plot. Since the Fermi level has been shift to 0 during the plotting, please mind your input." \
+                                 " Default: [E_w90.min - 1, E_w90.max + 1]")
     parser_cmp.add_argument('--kernel', default='unit,0,1',
-                            help="Formatted input: type, middle, width (Defalut: unit,0,1). Kernel functions are classified into two types: `unit` and `gaussian`. **The Fermi level is not subtracted from eigenvalues when using the kernel function to evaluate difference**.")
+                            help="Formatted input: type, middle, width (Defalut: unit,0,1). " \
+                                 "Kernel functions are classified into two types: `unit` and `gaussian`." \
+                                 " **The Fermi level is not subtracted from eigenvalues " \
+                                 "when using the kernel function to evaluate difference**.")
     parser_cmp.add_argument('--show-fonts', default=False, action="store_true",
                             help="Show all availabel font families can be used in `rcParams`")
     parser_cmp.add_argument('--fontfamily', default='Open Sans',
@@ -259,7 +267,7 @@ def eig(args):
                   efermi=efermi, 
                   nbnds_excl=args.nbnds_excl, 
                   nwann=args.nwann, 
-                  ndeg=args.ndeg,
+                  ndeg=args.deg,
                   eps=args.eps)
     if args.rm_fermi:
         erange = min(args.erange) + efermi, max(args.erange) + efermi
@@ -267,11 +275,11 @@ def eig(args):
         erange = min(args.erange), max(args.erange)
     print(f"Calculated Energy Range: {erange[0]}, {erange[1]} with Fermi level {efermi:.6f}")
 
-    if args.mode[0].lower() == 'p': # plot
-        w90.plot_eigenval(erange=erange, separate=args.separate,
-                          savefig=os.path.join(os.getcwd(), 'eigenval_dis.pdf'))
-    elif args.mode[0].lower() == 'r': # report
+    if args.mode[0].lower() == 'd': # dist
         w90.report_eigenval(erange=erange, separate=args.separate)
+        if args.plot:
+            w90.plot_eigenval(erange=erange, separate=args.separate,
+                              savefig=os.path.join(os.getcwd(), 'eigenval_dis.pdf'))
     elif args.mode[0].lower() == 'c': # count
         # Count how many states inside the energy interval
         bc.cprint(bc.BLUE, 'For `dis_win_min` and `dis_win_max` settings:')
