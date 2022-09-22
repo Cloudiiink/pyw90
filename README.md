@@ -4,14 +4,14 @@ A `VASP` and `Wannier90` interfaced tool for projection analysis and fully autom
 
 ## Key features
 
-1. Show distribution of eigenvalues.
-2. Pre-analysis before `Wannier90` interpolation with projection and dis energy window recommendation.
-3. Auto Wannier90 Fit. Using minimize method to choose the most suitable dis energy windows. 
-4. Comparison. Show difference between `VASP` bands and `Wannier90` bands via plotting and report.
+1. Display the distribution of eigenvalues.
+2. Pre-analysis before the `Wannier90` interpolation with projection and dis energy window recommendations.
+3. Auto Wannier90 Fit. Using minimization method to choose the most appropriate dis energy windows. 
+4. Comparison. Evaluate the differences between the `VASP` and `Wannier90` band structure.
 
 ## Installation via `pip`
 
-`pyw90` is installed using `pip` by
+Install `pyw90` using `pip.
 
 ```bash
 pip install pyw90
@@ -19,7 +19,7 @@ pip install pyw90
 pip install pyw90 --upgrade
 ```
 
-The `pyw90` dependencies are listed as following:
+The dependencies for `pyw90` are listed below:
 
 - python (>= 3.8, < 3.12)
 - pymatgen
@@ -31,25 +31,31 @@ The `pyw90` dependencies are listed as following:
 
 ## Usage
 
-You can use `pyw90 -h` to see help message. You can also use `-h` in submenu (e.g. `pyw90 auto -h`).
+After installing `pyw90`, you could use command line to line it. 
+To access help message, please use `pyw90 -h`. 
+In submenus, you can also use `-h` (e.g., `pyw90 auto -h`).
 
 ```
 usage: pyw90 [-h] {eig,pre,auto,cmp} ...
 
-python Command-line toolbox for VASP and Wannier90 interface with utility. You
-can also use -h to display the submenu help message. e.g. pyw90 pre -h
+Command-line toolbox interfaced between VASP and Wannier90. You can also use -h
+to display the submenu help message. e.g., pyw90 pre -h
 
 positional arguments:
-  {eig,pre,auto,cmp}  Main features
-    eig               Show distribution of eigenvalues.
-    pre               (Pre)-analysis before `Wannier90` Interpolation.
-    auto              (Auto Wannier90 Fit) Using minimize method to choose the
-                      most suitable dis energy windows.
-    cmp               (Comparison) Show difference between VASP bands and
-                      Wannier90 bands via plotting and report. `bnd.dat` for
-                      VASP band data in `p4vasp` format and
-                      `wannier90_band.dat`, `wannier90_band.labelinfo.dat`, and
-                      `wannier90.wout` are required for plotting and analysis.
+  {eig,pre,auto,cmp}  Menus
+    eig               Display the distribution of eigenvalues and dis energy
+                      window recommendations.
+    pre               (Pre)-analysis before `Wannier90` interpolation:
+                      generation of `Wannier90` input and improved dis energy
+                      window recommendations based on projected density of
+                      states.
+    auto              (Auto Wannier90 Fit) Using minimization method to choose
+                      the most appropriate dis energy windows.
+    cmp               (Comparison) Evaluate the differences between the `VASP`
+                      and `Wannier90` band structure.`bnd.dat` for VASP band
+                      data in `p4vasp` format and `wannier90_band.dat`,
+                      `wannier90_band.labelinfo.dat`,and `wannier90.wout` are
+                      required for plotting and analysis.
 
 optional arguments:
   -h, --help          show this help message and exit
@@ -57,60 +63,98 @@ optional arguments:
 
 ### 1. `eig` Menu
 
-This menu allows you have knowledge to the full distribution of eigenvalues. This may help you to decide the `exclude_bands` block in `Wannier90` and the `dis_win_min` and `dis_win_max`.
+This menu provides you an overview of the entire distribution of eigenvalues. 
+These information may assisit you in determining the `exclude_bands` block in `Wannier90` and the outer window `dis_win_min` and `dis_win_max`.
 
-The help message of `eig` menu is listed as below.
-
-**TODO change mode**
+The help message of `eig` menu is listed below.
 
 ```
 usage: pyw90 eig [-h] [-e ERANGE ERANGE] [--config] [--path PATH] [-i EIG]
                  [--rm-fermi] [--efermi EFERMI] [-w NWANN] [-n NBNDS_EXCL]
-                 [--deg NDEG] [--separate] [--eps EPS]
+                 [--deg DEG] [--plot] [--separate] [--eps EPS]
                  mode
 
 positional arguments:
-  mode              Mode: report, plot, count, suggest
+  mode              Mode: dist, count, suggest. Only the first character is
+                    recognized.
 
 optional arguments:
   -h, --help        show this help message and exit
-  -e ERANGE ERANGE  Energy range. Default: [-1e3, 1e3]
+  -e ERANGE ERANGE  Energy ranges. Default: [-1e3, 1e3]
   --config          Read input from config file `auto_w90_input.yaml` directly.
                     Default: False
   --path PATH       The path of working dir. Default: .
-  -i EIG            Select wannier90.eig file or EIGENVAL file. Default:
+  -i EIG            Select `wannier90.eig` file or `EIGENVAL` file. Default:
                     EIGENVAL
-  --rm-fermi        Whether or not the input `erange` has removed the Fermi
-                    energy is indicated by this flag. Default: False
+  --rm-fermi        Control whether the input energy ranges `erange` has removed
+                    the non-zero Fermi level. Default: False
   --efermi EFERMI   Fermi level. Default value is generated from `vasprun.xml`.
-  -w NWANN          Number of Wannier Functions. Default: 0
-  -n NBNDS_EXCL     Number of bands excluded below the bands from `Wannier90`.
-  --deg NDEG        Number of degeneracy. Default: 1
-  --separate        Calculate bands not separately.
-  --eps EPS         Tolerance for dis energy window suggestion. Default: 0.004
+  -w NWANN          Total number of Wannier Functions. Default: 0
+  -n NBNDS_EXCL     Total number of ignored bands beginning with the lowest KS
+                    band.
+  --deg DEG         Total number of band degeneracy. Default: 1
+  --plot            Control whether the distribution is output as a figure or
+                    not
+  --separate        Control calculate bands separately
+  --eps EPS         Tolerance for dis energy window recommendations. Default:
+                    0.004
 ```
 
-The `report` mode allow to directly print the results to terminal. But in `plot` mode, program will generate `dos_analysis.pdf` of bands.
+The `dist` mode displays the distribution of eigenvalues 
+and allows you to either generating figure named `dos_analysis.pdf` 
+or print the results directly  to the terminal. Here is an example for GaAs. 
+The starting band index is indicated by the label above the bar plot and the Fermi level has been set to 0.
 
-The `count` can calculate how many states at least and at most for each k-point inside the giving `erange`. And the `suggest` mode are used to for dis energy window suggestion. 
+![](image/eigenval_dis_cmp.png)
 
-Program reads the data from `EIGENVAL` file. You can specify the `EIGENVAL` location by `--path` argument or direct input the absolute or relative path to `EIGENVAL` by `-i` argument. `-e` arguments can be used to control the output range in `report` mode and `plot` mode. It can also be used to calculate the states numbrt inside the energe interval and the suggestion of `dis_win_min` and `dis_win_max` values.  `-w` argument reads the input as the number of Wannier functions (WFs). 
+In `count` mode, the code can determine how many states exist at least and at most for each k-point within the given energy ranges `erange`. 
+And the `suggest` mode is used to provide dis energy window recommendations. 
 
-We directly reads in the data from `EIGENVAL` without modification. So the Fermi level for materail usually is non-zero value. If you input the `--rm-fermi` argument, the program will be shift and treat fermi level as 0. This will affects the `-e` argument. The default Fermi level is read from the `vasprun.xml` file in `--path` folder. You can also specify other number you want become Fermi level via `--efermi` argument.
+The data is extracted from the `EIGENVAL` file or `wannier90.eig` file.
+You could directly input the absolute or relative path to the file using the `-i` argument, 
+or you could specify its location folder through the `-path` argument.
+Using the `-e` argument, the output energy ranges can be controlled both in printing and figure.
+It is also possible to use the `-e` argument to calculate the number of states existed within the given energe ranges and provide recommendations for the `dis_win_min` and `dis_win_max` values.
+This requires the `-w` argument passes non-zero number of Wannier functions (#WFs) to the code. 
 
-Other arguments:
+We read the data from the `EIGENVAL` file without modification.
+Therefore, the Fermi level for most materials is typically non-zero.
+If you add the argument `—rm-fermi`, the code will consider Fermi level to be 0.
+This will affect the energy ranges obtained from `-e` argument.
+The default Fermi level is read from the `vasprun.xml` file located in the `—path` directory.
+Within the `—efermi` argument, you can also explicitly state a different number to become Fermi level. 
 
-- `-n NBNDS_EXCL`. Number of bands exclude from the bottom bands. These bands will not displayed in `report` mode and `plot` mode.
-- `--deg NDEG`. Number of degenercy of each bands. If you want to consider the extra spin freedom degree for number of Wannier functions, please input `--deg 2`. Default value is 1.
-- `--eps EPS`. Since we only do the finite samplign in Brilliouin zone and the numerical error, there might some missing states when we count the number of states inside the energy interval. This might cause error in `Wannier90`. So we substract or add `eps` to the minimum and maximum of each bands to make sure the input is much reliable.
+Other arguments and parameters:
 
-**One of the key feature of `eig` menu is the dis energy suggestion.** The outer window suggestion requires `-e`  input. The `dis_win_min` values generates from the midpoint of global gap below the Fermi level. And based on the `dis_win_min`, `dis_win_max` is also generated which is the lower limit with given number of WFs. `Wannier90` restricts that the number of states should be at least number of WFs (#WFs for simplicity). 
+- `-n NBNDS_EXCL`. Total number of ignored bands beginning with the lowest KS band. These bands will be hidden in 'dist' mode.
+- `--deg DEG`. Band degeneracy. Please enter `--deg 2` to account for the degree of spin freedom when counting Wannier functions. The default value is 1.
+- `--eps EPS`. Due to the insufficient sampling in the Brilliouin zone as well as the numerical error, the number of states within the energy ranges may be underestimated. This may result in the failure of `Wannier90`. Therefore, we change the final dis energy windows by substracting or adding `eps` to the band minimum and band maximum respectively.
 
-The inner window suggestion can be generated with `-w` input (the default value of #WFs is 0). Based on all recommended `dis_win_min`, we also treat them as `dis_froz_min` to generate possible `dis_froz_max`. 
+**Among all the features, the dis energy recommendation is the key feature of the `eig` menu.**
+To activate the outer window recommendation, please use `suggest` mode.
+We obtain all potential `dis_win_min` values from the mid-point of the global gap below Fermi level. During this step, there is no extra
+With the extra argument `-w` (#WFs), the code would provide the `dis_win_max` values by counting the number of states inside the energy ranges. 
+Because `Wannier90` demands there ought to be at least as many states as #WFs for each kpoints. 
+During this step, we only present the `dis_win_min` for which the band minimum is greater than the lower limit of energy ranges and the number of states between `dis_win_min` and Fermi level is less than #WFs.
 
-The basic procedure of generate `dis_froz_max` is count how many states at least over all k-points in Brilliouin zone. We assume there are $N>N_{\text WF}$ states at least. Then program will generate upper bound $E_{\text{fmax}}$ for at least $N_i = N_{\text{WF}} + i$ states inside the given `dis_win_min`. And then generate the lower bound of `dis_froz_min` by counting down. This procedure ensures the generated dis frozen energy window satisfy the requirement of `Wannier90`. But this simple solution might ignore some valuable frozen energy window due to the degenerate points. Considering the mis-sampling in BZ and the numerical errpr, once we use procedure above to generate a degenerate `dis_froz_max`, add `eps` to output will add an additional states inside the frozen window. So the `dis_froz_min` will skip one state and become discontinous.
+We can also use `-w` argument (without input, the default value of #WFs is 0) for inner window recommendation.
+All recommended `dis_win_min` values $E_{\text{wmin}}$ obtained above are also utilizied as `dis_froz_min` for generating possible `dis_froz_max`. 
 
-To avoiding situation above, we add additional check whether there are skipped states between the input $E_{\text{fmin}}$ and the `dis_froz_min`. If there exist $\Delta N$ skipped states, we will go through to check all situation of with $N'_{\text{WF}}=N_{\text{WF}}-1, \cdots, N_{\text{WF}}-\Delta N$ to generate possible dis frozen energy windows.
+The first step in generating `dis_froz_max` is to count how many states there are, at a minimum, over all k-points in Brilliouin zone. 
+The energy ranges here is consisted of $E_{\text{wmin}}$ and $\tilde{E}_{\text{max}}$, which is the upper limit of given energy ranges from arguments. 
+We assume there are $N>N_{\text{WF}}$ states at least in this energy ranges. 
+
+Then the code will generate $E_{\text{fmax}}$, upper bound of new `dis_win_max`, with at most $N_i = N_{\text{WF}} + i$ states inside the energy ranges $\left(E_{\text{wmin}}, E_{\text{fmax}}\right)$. 
+Here $i=1,2,\cdots, N-N_{\text{WF}}$.
+And then the same method is then utilized to construct the lower bound of new `dis_froz_min` as well by searching $E_{\text{fmin}}$ matching at most $N_{\text{WF}}$ states in energy ranges $\left(E_{\text{fmin}}, E_{\text{fmax}}\right)$.
+This approach guarantees the generated dis frozen energy window satisfying the requirement of `Wannier90` that there are at most $N_{\text{WF}}$ states inside. 
+
+However, owing to the presence of degenerate points, such a straightforward approach might omit some vital frozen energy windows.
+This is resulted by substracting `eps` from the band maximum, which is also the degenerate points.
+With the occurance of additional states, the iteration over all states within energy ranges become discontinous and the obtained `dis_froz_min` will skip several bands and states.
+
+To prevent the problem described above, we include an additional check to see whether there are skipped states between the input $E_{\text{wmin}}$ and $\min E_{\text{fmin}}$, the minimum of all `dis_froz_min`. 
+If there are $\Delta N$ skipped states, we will re-examine number of Wannier functions with $N'_{\text{WF}}=N_{\text{WF}}-1, \cdots, N_{\text{WF}}-\Delta N$ to produce potential dis frozen energy windows.
 
 ### 2. `pre` Menu
 
@@ -154,7 +198,7 @@ For accurate and complete present the results from `VASP`, `Wannier90` needs to 
 
 **In `kpath` and `band` mode**, you need to input the path to the folder where `VASP` calculation results located via `--path`. The default path is the current folder. **In `template` mode**, default settings will print all stored input template for `Wannier90`. You can also input key words `basic`, `wann` and `band` to print the basic structure of `seedname.win`, dis energy window block and band structure calculating block separately.
 
-In `dos` mode, you also need to input location of `vasprun.xml` via `--path`. We can calculate the pdos distribution of each orbital at each atom inside desired energy interval from `-e` argument. The `--rm-fermi` argument is used if you want to assuming the input energy interval has already remove the Fermi level.
+In `dos` mode, you also need to input location of `vasprun.xml` via `--path`. We can calculate the pdos distribution of each orbital at each atom inside desired energy ranges from `-e` argument. The `--rm-fermi` argument is used if you want to assuming the input energy ranges has already remove the Fermi level.
 
 $$
 \text{pDOS} = \int_{E_1}^{E_2} \text{dos}_{\text{atom, orb}}(E)\,\mathrm{dE}
@@ -170,7 +214,7 @@ The `lb` argument is used to as lower bound to select the most reprentitive proj
 
 The selected information will be converted to the format for `projection` block in `Wannier90`. These projection information will also be printed as `key_string` format for `pyw90` input. (The represention of orbital is `orb_id`. Default delimeter for keys inside one species is comma and the delimeter between species is ;. )
 
-With `--extra` input in `dos` mode and `-e` given energy interval, we will also present the dis frozen window suggestion based on pdos. The result will be presented with columns including `dis_froz_min`, `dis_froz_max`, `N`, `pdos`, `tdos` and `percent`. The final column of table is the percentage of pdos/tdos. The full table is also sorted with `percent` in descending order. The lower bound of `dis_win_max` is also generated.
+With `--extra` input in `dos` mode and `-e` given energy ranges, we will also present the dis frozen window suggestion based on pdos. The result will be presented with columns including `dis_froz_min`, `dis_froz_max`, `N`, `pdos`, `tdos` and `percent`. The final column of table is the percentage of pdos/tdos. The full table is also sorted with `percent` in descending order. The lower bound of `dis_win_max` is also generated.
 
 **Note:**
 
@@ -390,7 +434,7 @@ Band No.     EMIN        EMAX
 --------------------------------
 ```
 
-You can also add `--separate` argument or use `plot` mode to get the energy range of each band and get the figure output `eigenval_dis(_separate).pdf` at current folder.
+You can also add `--separate` argument or use `plot` mode to get the energy ranges of each band and get the figure output `eigenval_dis(_separate).pdf` at current folder.
 
 ![](/image/eigenval_dis_cmp.png)
 
@@ -407,15 +451,15 @@ There are at most 16 states and at least 16 states in [-1000.0, 1000.0].
     Column `i+1_min` / `i_max` shows the band minimum / maximum near the gap
     Column `Nleast`  / `Nmost` shows the least / most number of states inside `dis_win_min` and Fermi level.
 
-   dis_win_min  dis_win_max    i+1_min      i_max  Nleast  Nmost
-2    -4.850718    -6.588207  -3.109228  -6.592207       3      3
-1   -10.042721   -11.174209  -8.907233 -11.178209       4      4
-0   -11.212233   -11.211260 -11.209206 -11.215260       6      6
+   dis_win_min     i+1_min      i_max  Nleast  Nmost
+2    -4.850718   -3.109228  -6.592207       3      3
+1   -10.042721   -8.907233 -11.178209       4      4
+0   -11.212233  -11.209206 -11.215260       6      6
 ```
 
 ### Show projection suggestion and create `Wannier90` input file
 
-Here we consider the energy interval with [-1, 1] near the Fermi level 
+Here we consider the energy ranges with [-1, 1] near the Fermi level 
 and obtain the most reprentative projection suggestion.
 
 You can also modify the lower selection bound via `--lb` argument to see the chage of outputs.
@@ -474,7 +518,7 @@ Figure should be stored at /current/working/folder/dos_analysis.pdf
 
 ![](image/dos_analysis.png)
 
-Then we can change the energy interval to a very large energy interval such as [-4.85, 20] (-4.85 is obtained from the previous result from `eig` menu).
+Then we can change the energy ranges to a very large energy ranges such as [-4.85, 20] (-4.85 is obtained from the previous result from `eig` menu).
 
 ```
 $ pyw90 pre dos --path .. -e -4.85 20 --extra 'Ga,0,1-3;As,1,1-3'
@@ -484,7 +528,7 @@ Calculated DOS Energy Range: -4.85, 20.0
 /public/home/enwang/pyw90/pyw90/lib/dos.py:294: UserWarning: CHECK YOUR INPUT! The energies in `EIGENVAL` is ranged from -15.0 to 15.0, which does not include all the energy ranged from -4.85 to 20.0 you input.
   warnings.warn(f'CHECK YOUR INPUT! The energies in `EIGENVAL` is ranged from {ee.min()} to {ee.max()}, ' \
     WANRING: There are 1 states between given `emin`: -4.85 and lowest `dis_froz_min`: -11.174209000000001. 
-    Please carefully consider the suggestion of dis frozen window and double-check energy range of each band.
+    Please carefully consider the suggestion of dis frozen window and double-check energy ranges of each band.
     This is a frequent occurrence in no-SOC systems with numerous denegeracy point.
     However, we still want to provide you with some alternative energy window options.
 

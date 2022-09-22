@@ -25,12 +25,14 @@ def get_args():
     r'''
     CML Parser
     '''
-    parser = argparse.ArgumentParser(description='python Command-line toolbox for VASP and Wannier90 interface with utility. You can also use -h to display the submenu help message. e.g. pyw90 pre -h')
-    subparsers  = parser.add_subparsers(help='Main features')
-    parser_eig  = subparsers.add_parser('eig' , help='Show distribution of eigenvalues.')
-    parser_pre  = subparsers.add_parser('pre' , help='(Pre)-analysis before `Wannier90` Interpolation.')
-    parser_auto = subparsers.add_parser('auto', help='(Auto Wannier90 Fit) Using minimize method to choose the most suitable dis energy windows.')
-    parser_cmp  = subparsers.add_parser('cmp' , help='(Comparison) Show difference between VASP bands and Wannier90 bands via plotting and report.' \
+    parser = argparse.ArgumentParser(description='Command-line toolbox interfaced between VASP and Wannier90. ' \
+                                                 'You can also use -h to display the submenu help message. e.g., pyw90 pre -h')
+    subparsers  = parser.add_subparsers(help='Menus')
+    parser_eig  = subparsers.add_parser('eig' , help='Display the distribution of eigenvalues and dis energy window recommendations.')
+    parser_pre  = subparsers.add_parser('pre' , help='(Pre)-analysis before `Wannier90` interpolation: generation of `Wannier90` input ' \
+                                                     'and improved dis energy window recommendations based on projected density of states.')
+    parser_auto = subparsers.add_parser('auto', help='(Auto Wannier90 Fit) Using minimization method to choose the most appropriate dis energy windows. ')
+    parser_cmp  = subparsers.add_parser('cmp' , help='(Comparison) Evaluate the differences between the `VASP` and `Wannier90` band structure.' \
                                                      '`bnd.dat` for VASP band data in `p4vasp` format and `wannier90_band.dat`, `wannier90_band.labelinfo.dat`,' \
                                                      'and `wannier90.wout` are required for plotting and analysis.')
     
@@ -38,34 +40,34 @@ def get_args():
     parser_eig.add_argument('mode', help='Mode: dist, count, suggest. Only the first character is recognized.')
     parser_eig.add_argument('-e', dest='erange', action='store', type=float,
                             default=[-1e3, 1e3], nargs=2,
-                            help='Energy range. Default: [-1e3, 1e3]')
+                            help='Energy ranges. Default: [-1e3, 1e3]')
     parser_eig.add_argument('--config', action='store_true', default=False,
                             help='Read input from config file `auto_w90_input.yaml` directly. Default: False')
     parser_eig.add_argument('--path', default='.',
                             help='The path of working dir. Default: .')
     parser_eig.add_argument('-i', dest='eig', action='store', type=str,
                             default='EIGENVAL',
-                            help='Select wannier90.eig file or EIGENVAL file. Default: EIGENVAL')
+                            help='Select `wannier90.eig` file or `EIGENVAL` file. Default: EIGENVAL')
     parser_eig.add_argument('--rm-fermi', action='store_true', default=False,
-                            help="Whether or not the input `erange` has removed the Fermi energy is indicated by this flag. Default: False")
+                            help="Control whether the input energy ranges `erange` has removed the non-zero Fermi level. Default: False")
     parser_eig.add_argument('--efermi', dest='efermi', action='store',
                             default=None,
                             help='Fermi level. Default value is generated from `vasprun.xml`.')
     parser_eig.add_argument('-w', dest='nwann', action='store', type=int,
                             default=0,
-                            help='Number of Wannier Functions. Default: 0')
+                            help='Total number of Wannier Functions. Default: 0')
     parser_eig.add_argument('-n', dest='nbnds_excl', action='store', type=int,
                             default=0,
-                            help='Number of bands excluded below the bands from `Wannier90`.')
+                            help='Total number of ignored bands beginning with the lowest KS band.')
     parser_eig.add_argument('--deg', dest='deg', action='store', type=int,
                             default=1,
-                            help='Number of degeneracy. Default: 1')
+                            help='Total number of band degeneracy. Default: 1')
     parser_eig.add_argument('--plot', default=False, action="store_true",
-                            help="Control whether to output the distribution as figure or not")
+                            help="Control whether the distribution is output as a figure or not")
     parser_eig.add_argument('--separate', default=False, action="store_true",
-                            help='Calculate bands not separately.')
+                            help='Control calculate bands separately')
     parser_eig.add_argument('--eps', action='store', type=float, default=4e-3,
-                            help="Tolerance for dis energy window suggestion. Default: 0.004")
+                            help="Tolerance for dis energy window recommendations. Default: 0.004")
     parser_eig.set_defaults(func=eig)
 
     # pre-process of VASP data
@@ -297,21 +299,29 @@ def eig(args):
                            '    Column `i+1_min` / `i_max` shows the band minimum / maximum near the gap\n' \
                            '    Column `Nleast`  / `Nmost` shows the least / most number of states inside `dis_win_min` and Fermi level.\n')
         df_win = w90.suggest_win_table()
-        print(df_win)
-
+        df_win = df_win[df_win["i+1_min"] > min(erange)]
+        
         if w90.nwann > 0:
+            print(df_win)
             # suggest frozen window with given energy interval
-            bc.cprint(bc.RED, '\n`dis_froz_min` and `dis_froz_max` Table:')
-            bc.cprint(bc.BLUE, f'    Suggest `dis_froz_min` & `dis_froz_max` as following with #WFs = {w90.nwann} from input')
-            bc.cprint(bc.BLUE,  '    Use `pre dos` menu to get suggestions based on projected density of states\n')
             df_froz_list = []
             for win_min in df_win['dis_win_min']:
                 erange = win_min, max(args.erange)
                 df = w90.get_dis_froz_df(erange)
                 df_froz_list.append(df)
-            df_froz = pd.concat(df_froz_list, ignore_index=True).drop_duplicates()
-            df_froz = df_froz.sort_values('dis_froz_min')
-            print(df_froz)
+            if len(df_froz_list) > 0:
+                df_froz = pd.concat(df_froz_list, ignore_index=True).drop_duplicates()
+                df_froz = df_froz.sort_values('dis_froz_min')
+                bc.cprint(bc.RED, '`dis_froz_min` and `dis_froz_max` Table:')
+                bc.cprint(bc.BLUE, f'    Suggest `dis_froz_min` & `dis_froz_max` as following with #WFs = {w90.nwann} from input')
+                bc.cprint(bc.BLUE,  '    Use `pre dos` menu to get suggestions based on projected density of states\n')
+                print(df_froz)
+            else:
+                bc.cprint(bc.RED, '\nThere is no `dis_froz_min` and `dis_froz_max` recommendation.')
+
+        else:
+            del df_win['dis_win_max']
+            print(df_win)
 
     else:
         bc.cprint(bc.BLUE, f'Unsupported mode: {args.mode}')
