@@ -141,7 +141,7 @@ We can also use `-w` argument (without input, the default value of #WFs is 0) fo
 All recommended `dis_win_min` values $E_{\text{wmin}}$ obtained above are also utilizied as `dis_froz_min` for generating possible `dis_froz_max`. 
 
 The first step in generating `dis_froz_max` is to count how many states there are, at a minimum, over all k-points in Brilliouin zone. 
-The energy ranges here is consisted of $E_{\text{wmin}}$ and $\tilde{E}_{\text{max}}$, which is the upper limit of given energy ranges from arguments. 
+The energy ranges here is consisted of $E_{\text{wmin}}$ and $E_2$, which is the upper limit of given energy ranges $(E_1, E_2)$ from arguments. 
 We assume there are $N>N_{\text{WF}}$ states at least in this energy ranges. 
 
 Then the code will generate $E_{\text{fmax}}$, upper bound of new `dis_win_max`, with at most $N_i = N_{\text{WF}} + i$ states inside the energy ranges $\left(E_{\text{wmin}}, E_{\text{fmax}}\right)$. 
@@ -158,7 +158,8 @@ If there are $\Delta N$ skipped states, we will re-examine number of Wannier fun
 
 ### 2. `pre` Menu
 
-This menu offers some basic input of `Wannier90`. The help message of `pre` menu is listed as below.
+This menu offers some basic `Wannier90` input and improved dis energy
+window recommendations based on projected density of states. The help message of `pre` menu is provided as below.
 
 ```
 positional arguments:
@@ -167,48 +168,59 @@ positional arguments:
 optional arguments:
   -h, --help        show this help message and exit
   --path PATH       The path of working dir. Default: .
-  -e ERANGE ERANGE  Energy range. Default: [-1e3, 1e3]
-  --lb LB           Lower bound for selected orbital / max single orbital.
+  -e ERANGE ERANGE  Energy ranges. Default: [-1e3, 1e3]
+  --lb LB           Lower bound for selected orbital / single orbital maximum.
                     default: 0.1
-  --rm-fermi        Whether or not the input `erange` has removed the Fermi
-                    energy is indicated by this flag. Default: False
+  --rm-fermi        Control whether the input energy ranges `erange` has removed
+                    the non-zero Fermi level. Default: False
   --extra EXTRA     Extra input. In `template` mode and within extra input
                     (basic, wann, band), we can choose one of the detailed parts
-                    to print.In `dos` mode and within extra input (`species`,
+                    to print. In `dos` mode and within extra input (`species`,
                     `structure_id`, `orbital_id` list separated by ;), we can
                     treat input as projections for `Wannier90` input to suggest
-                    dis frozen energy. Details can be found in the document.
+                    dis frozen energy. Details are available in the document.
   --spin-down       Specify the spin channel to `Spin.down`. Without this
-                    argument, the default one is `Spin.up`.
-  --plot            plot the dos distribution
-  --eps EPS         Tolerance for dis energy window suggestion. Default: 0.004
-  --deg DEG         Degeneracy of bands. Default: 1
+argument, the default spin channel is `Spin.up`.
+  --plot            Control whether the selected orbitals is output as a figure or not
+  --eps EPS         Tolerance for dis energy window recommendations. Default:
+                    0.004
+  --deg DEG         Total number of band degeneracy. Default: 1
 ```
 
-The `kpath`, `band` and `template` modes each provide different necessary input sections for `Wannier90` respectively.
+Different input parts are provided by **the `kpath`, `band` and `template` modes** for `Wannier90`.
 
-- `kpath` : Converting `VASP` input file `KPOINTS` with line mode to `Wannier90` input for `Kpoint_Path` block. 
-- `band` : Converting `VASP` band structure to a simpler k-E `.dat` file in `p4vasp` format. Default file name is `bnd.dat`. If the system is spinful, it will exported to `bnd_up.dat` and `bnd_down.dat` for different spin channel separatly. 
-- `template` : Print basic input for `Wannier90` including basic file structure of `seedname.win`, dis energy window block and band structure calculating block.
+- `kpath` : Converting the line-mode `KPOINTS` file from `VASP` to `Kpoint_Path` block in `Wannier90`.
+- `band` : Converting `VASP` band structure into a p4vasp-type $k-E$ `.dat` file.
+Default file name is `bnd.dat`. If the system has two spin channels, the band data will be exported into two separate files named `bnd_up.dat` and `bnd_down.dat`.
+- `template` : Print the input template for `Wannier90`, which includes the `seedname.win` file format, the dis energy window block, and the band structure calculation block. 
 
-**The `dos` mode is the most important feature of `pre` menu.** From the first-principle calculation in VASP with `LORBIT=11`, `vasprun.xml` are written with decomposed projection information.
+**The `dos` mode is the most important feature of `pre` menu.** From the first-principle calculation in VASP with `LORBIT=11`, `vasprun.xml` are written with decomposed orbital projection information.
 > For further details, see [LORBIT - Vaspwiki](https://www.vasp.at/wiki/index.php/LORBIT).
 
-For accurate and complete present the results from `VASP`, `Wannier90` needs to select the most representive projection as the initial guess for `projection` block. Here we use projected density of states (pdos) and total density of states (tdos) to analyze and give the suggestion of `dis_froz_min(max)` based on the ratio of pdos / tdos. 
+In order to describe the band structure `VASP` in a way that is both precise and comprehensive (especially for topological semimetal), `Wannier90` has to select projections that is both accurate and thorough.
+Here, we compare the projected density of states (pDOS) to the total density of states (tDOS) and offer recommendations of inner energy ranges `dis_froz_min(max)` based on the pDOS / tDOS ratio. 
 
-**In `kpath` and `band` mode**, you need to input the path to the folder where `VASP` calculation results located via `--path`. The default path is the current folder. **In `template` mode**, default settings will print all stored input template for `Wannier90`. You can also input key words `basic`, `wann` and `band` to print the basic structure of `seedname.win`, dis energy window block and band structure calculating block separately.
+You must specify the folder where `VASP` results are stored by using `--path` argument when using the `kpath` and `band` modes.
+The current working directory is used as default. In `template` mode,
+All of the `Wannier90` input templates will be printed by default. 
+You can also enter the keywords `basic`, `wann` and `band` to print
+basic structure of `seedname.win`, dis energy window block, and the band structure calculation block correspondingly.
 
-In `dos` mode, you also need to input location of `vasprun.xml` via `--path`. We can calculate the pdos distribution of each orbital at each atom inside desired energy ranges from `-e` argument. The `--rm-fermi` argument is used if you want to assuming the input energy ranges has already remove the Fermi level.
+While the code running in `dos` mode, you must also specify the path of the `vasprun.xml` file by using `--path` argument
+The pDOS distribution of each orbital each atom can be determined below with energy ranges $(E_1, E_2)$ obtained from `-e` argument.
+The `--rm-fermi` argument is used if the input energy ranges `erange` assumes the eigenvalues has already removed the non-zero Fermi level.
 
 $$
-\text{pDOS} = \int_{E_1}^{E_2} \text{dos}_{\text{atom, orb}}(E)\,\mathrm{dE}
+\text{pDOS} = \int_{E_1}^{E_2} \text{dos}_{\text{atom, orb}}(E)\,\mathrm{d}E
 $$
 
-The result of pdos is presented as table with columns including: `species`, `structure_id`, `orb_id`, `orb_name`, `key_string` and `dos`. The `structure_id` is obtained from `vasprun.xml` (also same as listed in `POSCAR`) with index started from $0$. The `orb_id` and `orb_name` use the notation in pymatgen (same as `VASP` in old version). 
+The output of pDOS is presented as a table with columns containing: `species`, `structure_id`, `orb_id`, `orb_name`, `key_string` and `dos`. 
+The `structure_id` is obtained from `vasprun.xml` (also same as listed in `POSCAR`) with index beginning at $0$. The `orb_id` and `orb_name` use the notation in pymatgen (same as `VASP` in old version). 
 
 > For further details, see note at the end of the section.
 
-The `key_string` is formatted with `species`, `structure_id` and `orb_name` (e.g. `Ga_0_px`). The dos column is calculated from above formula. Since we only need to compare the pdos relatively, the maximum of this column is normalized to $1$.
+The `key_string` is formatted with `species`, `structure_id` and `orb_name` (e.g. `Ga_0_px`). The dos column is calculated from above formula. 
+Since we are only interested in the relative comparisons of pDOS, the maximum value of `dos` column is normalized to $1$.
 
 The `lb` argument is used to as lower bound to select the most reprentitive projection. Only when the results in `dos` column are larger than `lb`, the orbitals and sites will be selected as the `projection` block input for `Wannier90`. We will print the total number of selected orbitals. And the selection information will also be simplified with merging the situation in which orbitals locate in one site and all sites of same species have the same orbitals. The results display as a table with `species`, `site` and `orb` columns. The default number of `site` column is `structure_id`. When all sites of same species have been selected, the value of `site` column will be $-1$.
 
