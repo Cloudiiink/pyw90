@@ -154,7 +154,13 @@ This is resulted by substracting `eps` from the band maximum, which is also the 
 With the occurance of additional states, the iteration over all states within energy ranges become discontinous and the obtained `dis_froz_min` will skip several bands and states.
 
 To prevent the problem described above, we include an additional check to see whether there are skipped states between the input $E_{\text{wmin}}$ and $\min E_{\text{fmin}}$, the minimum of all `dis_froz_min`. 
-If there are $\Delta N$ skipped states, we will re-examine number of Wannier functions with $N'_{\text{WF}}=N_{\text{WF}}-1, \cdots, N_{\text{WF}}-\Delta N$ to produce potential dis frozen energy windows.
+If there are $\Delta N$ skipped states, we will re-examine number of Wannier functions with
+
+$$
+N'_{\text{WF}}=N_{\text{WF}}-1, \cdots, N_{\text{WF}}-\Delta N
+$$
+
+to produce potential dis frozen energy windows.
 
 ### 2. `pre` Menu
 
@@ -222,15 +228,28 @@ The `structure_id` is obtained from `vasprun.xml` (also same as listed in `POSCA
 The `key_string` is formatted with `species`, `structure_id` and `orb_name` (e.g. `Ga_0_px`). The dos column is calculated from above formula. 
 Since we are only interested in the relative comparisons of pDOS, the maximum value of `dos` column is normalized to $1$.
 
-The `lb` argument is used to as lower bound to select the most reprentitive projection. Only when the results in `dos` column are larger than `lb`, the orbitals and sites will be selected as the `projection` block input for `Wannier90`. We will print the total number of selected orbitals. And the selection information will also be simplified with merging the situation in which orbitals locate in one site and all sites of same species have the same orbitals. The results display as a table with `species`, `site` and `orb` columns. The default number of `site` column is `structure_id`. When all sites of same species have been selected, the value of `site` column will be $-1$.
+The lower bound specified by the `lb` argument is used to determine the most representative projections.
+The orbitals and sites are used as the `projection` block for `Wannier90` input only when the `dos` column values is greater than `lb`. 
+As soon as the projections are picked upon, the total number of Wannier functions is also determined. 
+The results are presented in a table with `species`, `site` and `orb` columns.
+The default value for the `site` column is the `structure_id` mentioned above.
+You might encounter the value in `site` column becomes -1 instead of other non-negative integers.
+This is because we further simplify the selection information by unifying the case when orbitals are located at one site and all sites of the same species have the same orbitals.
 
-The selected information will be converted to the format for `projection` block in `Wannier90`. These projection information will also be printed as `key_string` format for `pyw90` input. (The represention of orbital is `orb_id`. Default delimeter for keys inside one species is comma and the delimeter between species is ;. )
+The projection Information will be transformed into Wannier90's `projection` block format. 
+For further usage, it will also be written in `key_string` format for `pyw90` input with replacing the orbital name to orbital index. By default, a comma separates keys within the same species, whereas `;` separates keys from different species. (e.g., `Ga,0,1-3;As,1,1-3` represents choosing the p orbital of Ga and As)
 
-With `--extra` input in `dos` mode and `-e` given energy ranges, we will also present the dis frozen window suggestion based on pdos. The result will be presented with columns including `dis_froz_min`, `dis_froz_max`, `N`, `pdos`, `tdos` and `percent`. The final column of table is the percentage of pdos/tdos. The full table is also sorted with `percent` in descending order. The lower bound of `dis_win_max` is also generated.
+Our pDOS-based dis frozen window recommendation will be shown if the user specifies `--extra` while running in `dos` mode and provides explicit energy ranges.
+Columns for `dis_froz_min`, `dis_froz_max`, `N`, `pdos`, `tdos` and `percent` will be presented in the output. The values of `percent` column is pDOS / tDOS ratio.
+The entire table is sorted acordding to the value of pDOS percentage.
+We can treat the highest percentage as the initial guess for `Wannier90`.
+
+In addition, the code also computes the minimum value of `dis_win_max`.
 
 **Note:**
 
-The notation of orbitals has changed a lot among different software and different version. `pyw90` use the same notation as `pymatgen` (2022.8.23). All orbitals are listed as below:
+The notation of orbitals has varied a lot between different softwares and differernt versions.
+The notation for `pyw90` and `pymatgen` (2022.8.23) is identical. Notations for all orbitals are listed below:
 
 ```bash
 # pymatgen 2022.8.23
@@ -254,7 +273,7 @@ fz3  fxz2  fyz2  fz(x2-y2)  fxyz  fx(x2-3y2)  fy(3x2-y2)
 
 ### 3. `auto` Menu
 
-This menu allows you do fully automated dis energy optimization and help message of `auto` menu is listed as below.
+**This menu enables you do fully automated dis energy optimization** and the `auto` menu help message is listed below.
 
 ```
 usage: pyw90 auto [-h] [--path PATH] [--pid PID] mode
@@ -269,9 +288,11 @@ optional arguments:
   --pid PID    PID to terminate.
 ```
 
-In `input` mode, program will generate the configuration file `auto_w90_input.yaml` in foloar `--path` which contains the all necessary message for running `Wannier90`. Some the parameters is deplicated with other menu, we also add `--config` argument in other menus to directly get information from configuration.
+If the code is executed with the `input` mode, it will generate the configuration file `auto_w90_input.yaml` in the directory specified by the `--path` option.
+This file contains all the necessary inputs for `Wannier90` to function properly, including the initial dis energy window in `Wannier90`, minimization parameters, running and display settings.
+Since other menus share same parameters in config file, and the `--config` option has been added to other menus so that data can be extracted directly from the file.
 
-`run` mode offers two method to automated run `Wannier90` job: via SLURM job system or direct run. The quality of `Wannier90` result is evaulated from
+In `run` mode, the `Wannier90` task can be executed automatically using the SLURM job system or by running the job locally. The quality of `Wannier90` result is evaulated from
 
 $$
 \Delta=\frac{1}{C} \frac{1}{N_{\mathbf{k}}} \sum_{i=1}^{M} \sum_{\mathbf{k}}\left|\varepsilon_{i, \mathbf{k}}^{\mathrm{DFT}}-\varepsilon_{i, \mathbf{k}}^{\mathrm{TB}}\right|{\color{red} f\left(\varepsilon_{i, \mathbf{k}}^{\mathrm{DFT}}\right)}.
@@ -280,44 +301,72 @@ $$
 $f(\cdot)$ is the kernel function (unit function or gaussian function). $i$ and $\bf k$ represent band index and kpoint separately. $C$ is the normalization constant obtained from
 
 $$
-C= \frac{1}{N_{\mathbf{k}}} \sum_{i=1}^{M} \sum_{\mathbf{k}}{\color{red} f\left(\varepsilon_{i, \mathbf{k}}^{\mathrm{DFT}}\right)}
+C= \frac{1}{N_{\mathbf{k}}} \sum_{i=1}^{M} \sum_{\mathbf{k}}{\color{red} f\left(\varepsilon_{i, \mathbf{k}}^{\mathrm{DFT}}\right)}.
 $$
 
-With initial input dis energy window and suitable minimization method, we will get the final result after some iterations. You can terminate your task in `term` mode. Please follow the instrcution message to kill all process. 
+The structure of the optimization process is displayed in the sequence diagram.
+By executing the command `pyw90 auto run`, the script launches a daemon process called `python auto_w90_fit.py` that manages `Wannier90` submission/running and status checks.
+The code do the primary calculation through submitting to the SLURM system or running locally.
+The production of new parameters within the loop and the termination condition are controlled by the minimization method.
+We will obtain the final dis energy window after a number of iterations (the maximum number of iterations is customizable in config file).
 
-⚠ Notice. The server prohibits heavy computing task on the login node generally. So we recommmend you to run the job via slurm system. You can also login to the compute node to run the task locally. Since the `pyw90` will create a daemon process to monitoring the status of your `Wannier90` task, be careful to terminate this daemon process. Actually this process is really easy to find. Because of the necessity to pass the full environment, the process for `pyw90 auto run` usually become extremely long. If you have any question, please ask the administrator of your server.
+
+```mermaid
+sequenceDiagram
+    participant pyw90
+    participant auto_w90_fit
+    pyw90->>auto_w90_fit: pyw90 auto run
+    Note left of auto_w90_fit: start<br/>daemon process
+    loop Wannier90 task
+        auto_w90_fit->>SLURM / local: sbatch
+        SLURM / local->>auto_w90_fit: squeue
+    end
+    Note right of auto_w90_fit: the parameters and results<br/>will export to `log_autow90_{timestamp}.log`
+    pyw90-->>auto_w90_fit: pyw90 auto term
+    Note left of auto_w90_fit: End<br/>daemon process
+    auto_w90_fit-->>SLURM / local: scancel
+```
+In `term` mode, you will be able to finish your optimization task.
+Please follow the execution message to kill all processes and be careful when terminating the 'pyw90' process.
+
+Typically, the public server prohibits intensive computing tasks on the login node.
+Therefore, we provide a function that allows you to execute the `Wannier90` task on a public server using SLURM system.
+Local `Wannier90` execution for `pyw90` is also possible. 
+Since the daemon process tracks the progress of your `Wannier90` job and not ending to launch new jobs until the stop condition for minimizing, terminating the SLURM job or `wannier.x` process is not enough.
+In pratical, the `python auto_w90_fit.py` process is very simple to identify.
+The process name is lengthy because it must pass the entire environment. 
 
 **Configuration file**
 
-The configuration file is written in YAML format allowing `#` to comment. The contents are case-sensitive and they use indentation to indicate hierarchical relationships. Tabs are not allowed for indentation with only spaces allowed.
+The configuration file is written in YAML format and you can use `#` to comment. The contents are case-sensitive and they use indentation to indicate hierarchical relationships. Tabs are not permitted for indentation with only spaces permitted.
 
 | key              | description  |
 |------------------|--------------|
 |`seedname`        | Seedname string. The `Wannier90` code will read its input from file `seedname.win`. The band structure will be written to `seedname_band.dat`.Default: `wannier90` | 
 |`runfile`         | Job file for SLURM job system to submit the `Wannier90` task  | 
-|`vasp_band_file`  | Band structure file of `VASP` in `p4vasp` format. This file can be generate via `pyw90 pre band`. Default: `bnd.dat`  | 
+|`vasp_band_file`  | Band structure file of `VASP` in `p4vasp` format. This file can be generated using `pyw90 pre band` command. Default: `bnd.dat`  | 
 |`jobname`         | Name of your task. | 
-|`username`        | Your username. `jobname` and `username` is used to identify which is the automated `Wannier90` job from `squeue` result. Default `username` is obtained from `getpass.getuser`.| 
-|`local`           | Boolean. If it's `True`, the `Wannier90` task will run via the input from `localrun`. Default: `False`. | 
-|`localrun`        | Command to run `Wannier90`. Only is used when `local: True`  | 
+|`username`        | Your username. `jobname` and `username` aer used to determine which `squeue` result corresponds to the automated `Wannier90` job from . Default `username` is obtained from `getpass.getuser`.| 
+|`local`           | Boolean. If it's `True`, the `Wannier90` task will execute based on the input from `localrun`. Default: `False`. | 
+|`localrun`        | Command to execute `Wannier90`. Only is used when `local: True`  | 
 |`efermi`          | Fermi level of material. | 
 |`kernel`          | Kernel funtion for evaluating the quality of `Wannier90` band structure result. Formatted input: type, middle, width (e.g. unit,0,1). Kernel functions are classified into two types: `unit` and `gaussian`. **The Fermi level is not subtracted from eigenvalues when using the kernel function to evaluate difference.**  | 
 |`method`          | The solving method of minimization. This parameter is treated as the input for `scipy.optimize.minimize`. **We recommend you to use solver allow no gradient information, such as Nelder-Mead, Powell and COBYLA.** (See [scipy.optimize.minimize — SciPy v1.9.1 Manual](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html)). Default: COBYLA  | 
 |`tol`             | Tolerance for termination. Default: 0.02. | 
 |`maxiter`         | Maximum number of iterations to perform. Both `tol` and `maxiter` are also passed to `scipy.optimize.minimize`. Default: 100.| 
 |`ini_dis`         | Initial dis energy windows dictionary. Input each value with indent. If some parameters is not needed, please set to `None` or `~`. | 
-|`opt_dis`         | Boolean dictionary control which parameters to optimize. `pyw90` will only optimized the key is `True`.  | 
+|`opt_dis`         | Boolean dictionary determine which parameters to optimize. `pyw90` will only optimized the key is `True`.  | 
 |`bounds`          | Boundary of energy window parameters. Please using `None` or `+/- inf` to set the boundary which is unbounded. Since there is also parameters correction during each iteration of `Wannier90`, you can set a really rough bound.| 
-|`num_print_check` | How many iteration to print check message once. Default: 10 |
-|`check_time`      | How many seconds to check the job status once. The job status is examined via the result from `squeue` in SLURM system or `pid` when `local` is `True`. Default: 30 |
+|`num_print_check` | Frequency of printing the check message. Default: 10 |
+|`check_time`      | Time period of checking the job status. The job status is examined via the result from `squeue` in SLURM system or `pid` when `local` is `True`. Default: 30 |
 |`display`         | Boolean dictionary control display the band difference (`diff`) and total spreading of Wannier functions (`spread`). Default: both `True`.   |
 
 
-**Before running your task, remember to modify the value of each key to your own.**
+**Before executing your task, remember to modify the value of each key to your own.**
 
 ### 4. `cmp` Menu
 
-This menu allows you compare the result from `Wannier90` and `VASP`. The help message of `cmp` menu is listed as below.
+This menu enables you compare the result from `Wannier90` and `VASP`. The help message of `cmp` menu is listed below.
 
 ```
 usage: pyw90 cmp [-h] [--config] [--path PATH] [--efermi EFERMI] [--vasp VASP]
