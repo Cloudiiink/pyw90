@@ -80,17 +80,17 @@ def get_args():
     parser_pre.add_argument('--lb', action='store', type=float, default=0.1,
                             help='Lower bound for selected orbital / max single orbital. default: 0.1')
     parser_pre.add_argument('--rm-fermi', action='store_true', default=False,
-                            help="Whether or not the input `erange` has removed the Fermi energy is indicated by this flag. Default: False")
+                            help="Control whether the input energy ranges `erange` has removed the non-zero Fermi level. Default: False")
     parser_pre.add_argument('--extra', action='store', type=str, default='',
                             help='Extra input. In `template` mode and within extra input (basic, wann, band), we can choose one of the detailed parts to print.' \
                                  'In `dos` mode and within extra input (`species`, `structure_id`, `orbital_id` list separated by ;), ' \
                                  'we can treat input as projections for `Wannier90` input to suggest dis frozen energy. Details can be found in the document.')
     parser_pre.add_argument('--spin-down', action='store_true', default=False,
-                            help="Specify the spin channel to `Spin.down`. Without this argument, the default one is `Spin.up`.")
+                            help="Specify the spin channel to `Spin.down`. Without this argument, the default spin channel is `Spin.up`.")
     parser_pre.add_argument('--plot', default=False, action="store_true",
                             help='plot the dos distribution')
     parser_pre.add_argument('--eps', action='store', type=float, default=4e-3,
-                            help="Tolerance for dis energy window suggestion. Default: 0.004")
+                            help="Tolerance for dis energy window recommendations. Default: 0.004")
     parser_pre.add_argument('--deg', action='store', type=int, default=1,
                             help='Degeneracy of bands. Default: 1')
     parser_pre.set_defaults(func=pre)
@@ -118,8 +118,8 @@ def get_args():
     parser_cmp.add_argument('--seedname', dest='seedname', default='wannier90',
                             help="Seedname of Wannier90 input. Default: wannier90")
     parser_cmp.add_argument('--ylim', default=None, nargs=2, type=float,
-                            help="Energy bound for plot. Since the Fermi level has been shift to 0 during the plotting, please mind your input." \
-                                 " Default: [E_w90.min - 1, E_w90.max + 1]")
+                            help="Energy bound for plot. Please note that the Fermi level has been shifted to 0 during the plotting process. " \
+                                 "Default: [E_w90.min - 1, E_w90.max + 1]")
     parser_cmp.add_argument('--kernel', default='unit,0,1',
                             help="Formatted input: type, middle, width (Defalut: unit,0,1). " \
                                  "Kernel functions are classified into two types: `unit` and `gaussian`." \

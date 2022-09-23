@@ -168,29 +168,35 @@ This menu offers some basic `Wannier90` input and improved dis energy
 window recommendations based on projected density of states. The help message of `pre` menu is provided as below.
 
 ```
+usage: pyw90 pre [-h] [--path PATH] [-e ERANGE ERANGE] [--lb LB] [--rm-fermi]
+                 [--extra EXTRA] [--spin-down] [--plot] [--eps EPS] [--deg DEG]
+                 mode
+
 positional arguments:
-  mode              Mode: kpath, band, template, dos
+  mode              Mode: kpath, band, template, dos. Only the first character
+                    is recognized.
 
 optional arguments:
   -h, --help        show this help message and exit
   --path PATH       The path of working dir. Default: .
-  -e ERANGE ERANGE  Energy ranges. Default: [-1e3, 1e3]
-  --lb LB           Lower bound for selected orbital / single orbital maximum.
+  -e ERANGE ERANGE  Energy range. Default: [-1e3, 1e3]
+  --lb LB           Lower bound for selected orbital / max single orbital.
                     default: 0.1
   --rm-fermi        Control whether the input energy ranges `erange` has removed
                     the non-zero Fermi level. Default: False
   --extra EXTRA     Extra input. In `template` mode and within extra input
                     (basic, wann, band), we can choose one of the detailed parts
-                    to print. In `dos` mode and within extra input (`species`,
+                    to print.In `dos` mode and within extra input (`species`,
                     `structure_id`, `orbital_id` list separated by ;), we can
                     treat input as projections for `Wannier90` input to suggest
-                    dis frozen energy. Details are available in the document.
+                    dis frozen energy. Details can be found in the document.
   --spin-down       Specify the spin channel to `Spin.down`. Without this
-argument, the default spin channel is `Spin.up`.
-  --plot            Control whether the selected orbitals is output as a figure or not
+                    argument, the default spin channel is `Spin.up`.
+  --plot            plot the dos distribution
   --eps EPS         Tolerance for dis energy window recommendations. Default:
                     0.004
-  --deg DEG         Total number of band degeneracy. Default: 1
+  --deg DEG         Degeneracy of bands. Default: 1
+
 ```
 
 Different input parts are provided by **the `kpath`, `band` and `template` modes** for `Wannier90`.
@@ -388,9 +394,9 @@ optional arguments:
   --vasp VASP           Path of VASP band file in `p4vasp` format. Default:
                         bnd.dat
   --seedname SEEDNAME   Seedname of Wannier90 input. Default: wannier90
-  --ylim YLIM YLIM      Energy bound for plot. Since the Fermi level has been
-                        shift to 0 during the plotting, please mind your input.
-                        Default: [E_w90.min - 1, E_w90.max + 1]
+  --ylim YLIM YLIM      Energy bound for plot. Please note that the Fermi level
+                        has been shifted to 0 during the plotting
+                        process. Default: [E_w90.min - 1, E_w90.max + 1]
   --kernel KERNEL       Formatted input: type, middle, width (Defalut:
                         unit,0,1). Kernel functions are classified into two
                         types: `unit` and `gaussian`. **The Fermi level is not
@@ -406,11 +412,16 @@ optional arguments:
   --quiet               Equal to --no-spreading --no-quality
 ```
 
-With `name` argument input, figure `name_VASP_W90_cmp.png` will be generated.
+Final figure `name_VASP_W90_cmp.png` will be created in current folder for comparison with `name` argument from input.
 
 ![](image/GaAs_VASP_W90_cmp.png)
 
-`--path` argument defines where to get the necessary file with `--vasp` and `--seedname` locating the band structure data of `VASP` and `Wannier90`. You can also specify the Fermi level with `--efermi`. `--kernel` defines the kernel function as mentioned in `auto` section to evaluate the quality of `Wannier90` results. Default settings will show band difference message and the wannierization of total Wannier functions as shown below. With `--no-spread` or `--no-quality`, you can avoid one of the message. You can use `--quiet` to block either messages.
+The `--path` parameter specifies the directory in which to find the required file, while the `--vasp` and `--seedname` arguments locate the `VASP` and `Wannier90` band structure data, respectively.
+The `--efermi` option lets you choose the Fermi energy level.
+To assess the accuracy of `Wannier90` output, the `--kernel` option specifies the kernel function to evaluate quality described in the `auto` subsection.
+By default, the wannierization of all Wannier functions and a band difference notification will display as shown below.
+You may skip one of the messages by using the `--no-spread` or `--no-quality` options.
+To block either of these messages, please use the `--quiet` option. 
 
 ```
 +-----+--------------------------------++-----+--------------------------------+
@@ -454,9 +465,9 @@ Spread (Ang^2) in `./wannier90.wout`:
 
 ## Example
 
-The folder structure looks like. Here we won't mention too much details as assuming you can prepare all the needed file for `Wannier90`.
-Next example usage of `pyw90` is shown with name of current/working directory is
-`wannier`.
+The following is a sample folder structure.
+Assuming you are familiar with `Wannier90`, we will not go into detail and you can prepare the necessary files.
+The working folder of following demonstration of `pyw90` is `tests/GaAs/wannier`
 
 ```
 tests/GaAs
@@ -464,7 +475,7 @@ tests/GaAs
 │   ├── INCAR
 │   ├── KPOINTS  
 │   └── POSCAR
-├── wannier
+├── wannier  <-- Current working dir
 │   ├── afolder  
 │   ├── wannier90_input.win
 │   └── wannier90.win 
@@ -520,10 +531,9 @@ There are at most 16 states and at least 16 states in [-1000.0, 1000.0].
 
 ### Show projection suggestion and create `Wannier90` input file
 
-Here we consider the energy ranges with [-1, 1] near the Fermi level 
-and obtain the most reprentative projection suggestion.
+Here, we evaluate the energy ranges with [-1, 1] close to the Fermi level in order to derive the most representative projection recommendation.
 
-You can also modify the lower selection bound via `--lb` argument to see the chage of outputs.
+You can also modify the lower selection bound using the `--lb` argument to observe the outputs change. 
 
 ```
 $ pyw90 pre dos --path .. -e -1 1 --rm-fermi --plot
@@ -606,8 +616,10 @@ If you want to see `dis_win_min(max)` suggestion, please use `pyw90 eig suggest`
 
 Lowest `dis_win_max` for -4.85: 13.098955
 ```
+Thus, an initial guess of the Wannier function was obtained.
+Then, we can seek the `wannier90.win` template for the `Wannier90` and `VASP` interface using `pyw90 pre template --extra basic`.
 
-So we obtained one initial guess of Wannier function. Then we can get the template for `wannier90.win` for `Wannier90` and `VASP` interface via `pyw90 pre template --extra basic`. Since `VASP` (<6.0) only supports `Wannier90` with version 1.2. You can modify and recompile `VASP` to calculate non-collinear Wannier functions and support spinor projection method. For further details, please refer to [Chengcheng-Xiao/VASP2WAN90_v2_fix: An updated version of the VASP2WANNIER90v2 interface](https://github.com/Chengcheng-Xiao/VASP2WAN90_v2_fix).
+Since `VASP` (<6.0) only supports `Wannier90` with version 1.2. You may modify and recompile `VASP` so that it can calculate non-collinear Wannier functions and support spinor projection method. For further details, please refer to [Chengcheng-Xiao/VASP2WAN90_v2_fix: An updated version of the VASP2WANNIER90v2 interface](https://github.com/Chengcheng-Xiao/VASP2WAN90_v2_fix).
 
 ```
 num_wann  = 6
@@ -630,9 +642,9 @@ Other inputs is set automatically based on the `VASP` calculation, such as `kpoi
 
 > With VASP (>= 6.2.0), it will support `Wannier90` >=3.0. And the `wannier90.win` input can also directly input via `INCAR` with `WANNIER90_WIN` (See [WANNIER90_WIN - Vaspwiki](https://www.vasp.at/wiki/index.php/WANNIER90_WIN)) and no more initial `wannier90.win` file needed.
 
-After running the task, `VASP` will write the input files for a preceeding `WANNIER90` run: `wannier90.win`, `wannier90.mmn`, `wannier90.eig` and `wannier90.amn`.
+After executing the task, `VASP` will write the input files for a preceeding `WANNIER90` run: `wannier90.win`, `wannier90.mmn`, `wannier90.eig` and `wannier90.amn`.
 
-Here we write the initial guess of dis energy window and band structure calculation card into `wannier90.win` file. The `Kpoint_Path` block can be obtained from `pyw90 pre kpath --path ../bnd`
+Here we write the initial guess of dis energy window and band structure calculation card into `wannier90.win` file. The `Kpoint_Path` block can be obtained from `pyw90 pre kpath --path ../bnd`.
 
 ```
 # disentanglement and wannierization
@@ -657,13 +669,18 @@ Begin Kpoint_Path
 End Kpoint_Path
 ```
 
-Then we can use `pyw90 auto` menu to automated optimized the dis energy window. We have to create the configuration file `auto_w90_input.yaml` via `pyw90 auto input`. **Modify the configuration file to your own before run a calculation**. (see the document of `auto` menu above to see meaning of each key)
+Then we can use the `pyw90 auto` menu to optimize the dis energy window automatically.
+The configuration file `auto_w90_input.yaml` should be generated using `pyw90 auto input`.
+**Customize the configuration file before running a calculation.**
+(see the `auto` menu's documentation for the meaning of each key)
 
-Once you have prepared all the input, then type `pyw90 auto run` to run the procedure. There are two output files.
-- `auto_w90_output.txt` : record the stdout message.
-- `log_autow90_{timestamp_you_submit}.log` : record the full procedure of `Wannier90` input.
+After preparing all input, type `pyw90 auto run` to execute the procedure.
+There are two output files.
 
-If you want to terminate the automated task, type `pyw90 auto term` and follow the tips to kill all processes.
+- `auto_w90_output.txt`: save the stdout output.
+- `log_autow90_{timestamp you submit}.log`: record the complete process of the 'Wannier90' input.
+
+Execute `pyw90 auto term` and follow the instructions to kill all processes to terminate the automated task. 
 
 ###  Show quality of Wannier functions
 

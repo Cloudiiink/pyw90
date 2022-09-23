@@ -1,8 +1,8 @@
 ---
-# * Auto Wannier90 Fit settings
+# * pyw90 auto menu settings
 # - `.yaml` files are case-sensitive and use indentation to indicate hierarchical relationships. 
-# - Tabs are not allowed for indentation with only spaces allowed.
-# - `.yaml` files can be commented with #.
+# - Tabs are not permitted for indentation with only spaces permitted.
+# - `.yaml` files can use # to comment.
 
 # ! - Modify the value of each keywords to your own.
 
@@ -39,7 +39,6 @@ kernel: [unit, 3.5, 1]
 # number of WFs
 nwann: 6
 # Method of minimize: `Nelder-Mead`, `Powell`, `COBYLA`
-# Only the first character counts
 method: COBYLA #Powell # Nelder-Mead
 # tolerance and maxiter of minimize
 tol: 2e-2
@@ -69,9 +68,7 @@ bounds:
 - [None, None]
 
 # print check message settings
-# How many check then print once 
 num_print_check: 1
-# waiting time until next check
 check_time: 30
 
 # Display spreading and diff
