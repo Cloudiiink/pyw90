@@ -1,6 +1,11 @@
+<table align="center"><tr><td align="center" width="9999">
+
 # pyw90
 
-A `VASP` and `Wannier90` interfaced tool for projection analysis and fully automated dis energy window optimization.
+A `VASP` and `Wannier90` interfaced tool for projection analysis and fully automated dis energy window optimization
+
+</td></tr></table>
+
 
 ## Key features
 
@@ -28,6 +33,10 @@ The dependencies for `pyw90` are listed below:
 - python-yaml (PyYAML)
 - pandas
 - matplotlib (>=3.4)
+
+## Contributing
+
+Issues and pull-requests are welcome.
 
 ## Usage
 
