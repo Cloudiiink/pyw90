@@ -640,9 +640,42 @@ class W90():
             d[k] = opt_input[i]
         return d
 
+    def check_dis_inner_dict(self, opt_input:ArrayLike) -> bool:
+        r"""
+        Check input value. When number of states inside frozen windows is greater than number of WFs,
+        the function will return `False` with WARNING.
+
+        - `opt_input`: List of all energy values to be optimized with default order in `self.opt_ini_dis`.
+        """
+        dis = self.total_dis_dict(opt_input)
+        n_froz = self.count_states_most((dis['dis_froz_min'], dis['dis_froz_max']))
+        if n_froz > self.nwann:
+            logger.warning(f"There are {n_froz:3d} states inside frozen window but {self.nwann:3d} WFs given!".ljust(80, ' '))
+            logger.warning("Fix `dis windows` as following".ljust(80, ' '))
+            return False
+        else:
+            return True
+
+    def check_dis_outer_dict(self, opt_input:ArrayLike) -> bool:
+        r"""
+        Check input value. When number of states inside dis windows is less than number of WFs,
+        the function will return `False` with WARNING.
+
+        - `opt_input`: List of all energy values to be optimized with default order in `self.opt_ini_dis`.
+        """
+        dis = self.total_dis_dict(opt_input)
+        n_win  = self.count_states_least((dis['dis_win_min'], dis['dis_win_max']))
+        if n_win < self.nwann:
+            logger.warning(f"There are {n_win:3d} states inside dis window but {self.nwann:3d} WFs given!".ljust(80, ' '))
+            logger.warning("Fix `dis windows` as following".ljust(80, ' '))
+            return False
+        else:
+            return True
+
     def check_total_dis_dict(self, opt_input:ArrayLike) -> bool:
         r"""
-        Check input value. When number of states inside frozen windows is greater than number of WFs or number of states inside dis windows is less than number of WFs, the function will return `False` with WARNING.
+        Check input value. When number of states inside frozen windows is greater than number of WFs or number of states inside dis windows is less than number of WFs,
+        the function will return `False` with WARNING.
 
         - `opt_input`: List of all energy values to be optimized with default order in `self.opt_ini_dis`.
         """
@@ -680,16 +713,21 @@ class W90():
 
     def rational_opt_input(self, opt_input:ArrayLike) -> Dict[str,float]:
         r'''
-        Return rationalized full dis windows dict from input. `Wannier90` requires at most #WFs of states inside the frozen energy window and at least #WFs of states inside the dis energy window. We treat the input `dis_win_min` as beginning to generate `dis_froz_max`, `dis_froz_min` and `dis_win_max` which satisifying the requirement of `Wannier90`.
+        Return rationalized full dis windows dict from input. `Wannier90` requires at most #WFs of states inside the frozen energy window
+        and at least #WFs of states inside the dis energy window. 
+        We treat the input `dis_win_min` as beginning to generate `dis_froz_max`, `dis_froz_min` and `dis_win_max` 
+        which satisifying the requirement of `Wannier90`.
         
         - `opt_input`: List of all energy values to be optimized with default order in `self.opt_ini_dis`.
         '''
         dis = self.total_dis_dict(opt_input)
         emin = dis['dis_win_min']
-        emax = self.suggest_froz_max(emin)
-        dis['dis_froz_max'] = emax
-        dis['dis_froz_min'] = self.suggest_froz_min(emax)
-        dis['dis_win_max']  = self.suggest_win_max(emin)
+        if not self.check_dis_inner_dict(opt_input):
+            emax = self.suggest_froz_max(emin)
+            dis['dis_froz_max'] = emax
+            dis['dis_froz_min'] = self.suggest_froz_min(emax)
+        if not self.check_dis_outer_dict(opt_input):
+            dis['dis_win_max']  = self.suggest_win_max(emin)
         return [dis[k] for k in self.config.opt_ini_dis.keys()]
 
     def show_spread(self, update:bool=False, terminal:bool=False):
