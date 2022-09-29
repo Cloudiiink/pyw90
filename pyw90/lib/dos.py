@@ -231,11 +231,10 @@ class DOS():
         return '\n'.join(l_w90_str)
 
     @classmethod
-    def parse_projections_from_selected(cls, s: str, delimiter:str=';') -> set[str]:
+    def parse_projections_from_selected(cls, s: str) -> set[str]:
         r"""
         Convert input string to `set` with `key_string` format (`spec`_`struc_id`_`orb_name`).
-        
-        The default delimiter is `;` and we can use `1-4|6` to represent `1,2,3,4,6` both in site_id and orbital_id.
+        We  use `1-4|6` to represent `1,2,3,4,6` both in site_id and orbital_id.
 
         **Note**: `pymatgen` notation used in returned `key_string`.
         """
@@ -248,8 +247,8 @@ class DOS():
             spec, pos, orbs = l.split(',')
             pos, orb = str2num(pos), str2num(orbs) 
             for p in pos:
-                for orb in orb:
-                    res.append(f'{spec}_{p}_{cls.orbital_names[orb]}')
+                for o in orb:
+                    res.append(f'{spec}_{p}_{cls.orbital_names[o]}')
         return set(res)
 
     @staticmethod
@@ -433,8 +432,15 @@ class DOS():
         bc.cprint(bc.BLUE, f'Plotted with a total of {len(df)} orbitals, {sum(mask)} of which are selected.')
         bc.cprint(bc.BLUE, f"Figure should be stored at {os.path.abspath(savefig)}")
         
-        ax = df.plot.barh(x="key_string", y="dos", color=color) #, figsize=(8, 20))
+        import matplotlib.patheffects as pe
+
+        # dynamic figsize and font support
+        plt.rcParams['font.family'] = "Open Sans"
+        ax = df.plot.barh(x="key_string", y="dos", color=color, figsize=(8, len(df)/32*8))
         ax.set_axisbelow(True)
+        label = ax.bar_label(ax.containers[0], fmt='%.3f', padding=5)
+        for l in label:
+            l.set_path_effects([pe.withStroke(linewidth=8, foreground="w")])
         plt.grid(axis='x')
 
         # save figure in local folder not in source folder
