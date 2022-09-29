@@ -1,5 +1,4 @@
 import os, time, io
-from sys import stderr
 import pandas as pd
 import subprocess
 
@@ -42,7 +41,8 @@ class Job():
         #                         capture_output=True, shell=True, text=True)
         # logger.debug(ls.stdout)
         # logger.debug(self.config.environ)
-        jobs = subprocess.run(["squeue", "-u", self.usr_name], 
+        fmt = r"%.7i %9P %10j %.8u %.2t %.12M %.5C %.4D"
+        jobs = subprocess.run(["squeue", "-o", fmt, "-u", self.usr_name], 
                                 cwd=self.path, 
                                 env=self.config.environ,
                                 capture_output=True, text=True)
@@ -51,9 +51,15 @@ class Job():
 
         # Not sure about job states codes is necessary or not
         # Ref:　https://slurm.schedmd.com/squeue.html
+
+        # Print jobs nice
+        logger.debug('SQUEUE RESULTS'.ljust(80, " "))
+        for l in str(df).split('\n'):
+            logger.debug(l.ljust(80, " "))
+            
         df = df[df['NAME'] == self.job_name]
         # df = df[df['USER'] == self.usr_name]
-        logger.debug(df)
+        # logger.debug(df)
         return df
 
     def check_run_until_stop(self):
