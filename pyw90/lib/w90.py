@@ -174,18 +174,17 @@ class W90():
         else:
             print('Unknown flag: ', flag)
 
-    def plot_eigenval(self, erange:Tuple[float,float]=None, separate:bool=False, savefig:str='eigenval_dis.pdf'):
+    def plot_eigenval(self, erange:Tuple[float,float]=None, separate:bool=False, 
+                      savefig:str='eig_dist.pdf'):
         r'''
         Plot the eigenvalue distribution of each bands. When `separate` is `False`, we will merge the distribution of bands when there is no global gap.
 
         ### Parameters
         - `erange`: The energy interval you concerned about.
         - `separate`: Control whether to merge the bands without the global gap or not. Default is `False`.
-        - `savefig`: The file name of saved image result. default: eigenval_dis.pdf
+        - `savefig`: The file name of saved image result. default: eig_dist.pdf
         '''
         plt.rcParams['font.family'] = "Open Sans"
-
-        fig, ax = plt.subplots()
 
         def label_bar(string, height, rect):
             """Attach a text label on top of bar."""
@@ -209,30 +208,41 @@ class W90():
                 idx_min, idx_max = [0]+list(idx+1), list(idx)+[self.nbnds-1]
             
             eplot_min, eplot_max = self.eband_min[idx_min], self.eband_max[idx_max]
-
             ymin, ymax = erange if erange else (-1e4, 1e4)
+            N = np.sum(np.logical_and(eplot_max > ymin, eplot_min < ymax))
+            fig, ax = plt.subplots(figsize=(N/2, 6))
 
+            xticks = []
             for i, (emin, emax) in enumerate(zip(eplot_min, eplot_max)):
                 if emax > ymin and emin < ymax:
-                    rect = ax.bar(i, emax-emin, width=0.6, bottom=emin-self.efermi, color='b')
-                    labeli = ax.bar_label(rect, labels=[f'{idx_min[i]-self.nbnds_excl}'], padding=5)
+                    xticks.append(2*i)
+                    rect = ax.bar(2*i, emax-emin, width=0.6, bottom=emin-self.efermi, color='b')
+                    labeli = ax.bar_label(rect, labels=[f'{idx_min[i]}-{idx_max[i]}'], padding=5)
                     for l in labeli:
                         l.set_path_effects([pe.withStroke(linewidth=8, foreground="w")])
-                    # label_bar(f'{idx_min[i]-self.nbnds_excl}', emax, rect[0])
+
+            ax.set_xticks(xticks, labels=[f'G{i//2}' for i in xticks])
 
         # dont merge bands without global gap
         else:
             savefig = savefig[:-4] + '_separate.pdf'
             idx = np.arange(self.nbnds_excl, self.nbnds-1, self.ndeg) if self.nbnds_excl else np.arange(0, self.nbnds-1, self.ndeg)
             ymin, ymax = erange if erange else (-1e4, 1e4)
+            N = np.sum(np.logical_and(self.eband_max > ymin, self.eband_min < ymax))
+            if N > 50:
+                bc.cprint(bc.RED, "WARNING: Since there are two many bands to plot" \
+                                  "the figure might become very long!")
+            fig, ax = plt.subplots(figsize=(N/16*4, 6))
             for i in idx:
                 emin, emax = self.eband_min[i], self.eband_max[i]
                 if emax > ymin and emin < ymax:
-                    rect = ax.bar(i, emax-emin, width=0.6, bottom=emin-self.efermi, color='b')
-                    labeli = ax.bar_label(rect, labels=[f'{i-self.nbnds_excl}'], padding=5)
-                    for l in labeli:
-                        l.set_path_effects([pe.withStroke(linewidth=8, foreground="w")])
-                    # label_bar(f'{i-self.nbnds_excl}', emax, rect[0])
+                    if i % 5 != 0:
+                        rect = ax.bar(i, emax-emin, width=0.6, bottom=emin-self.efermi, color='b')
+                    else:
+                        rect = ax.bar(i, emax-emin, width=0.6, bottom=emin-self.efermi, color='k')
+                        labeli = ax.bar_label(rect, labels=[f'{i}'], padding=5)
+                        for l in labeli:
+                            l.set_path_effects([pe.withStroke(linewidth=8, foreground="w")])
 
         ax.set(ylabel='Energy / eV')
         ax.set_axisbelow(True)

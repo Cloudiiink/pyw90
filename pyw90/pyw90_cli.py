@@ -231,7 +231,7 @@ def cmp(args):
         kernel = parse_kernel(kernel_str, mid, width)
     
     bc.cprint(bc.BLUE, f"The output figure should be stored at")
-    bc.cprint(bc.BLUE, f"    {os.path.join(args.path, args.name+'_VASP_W90_cmp.pdf')}")
+    bc.cprint(bc.BLUE, f"    {os.path.abspath(os.path.join(args.path, args.name+'_VASP_W90_cmp.pdf'))}")
     w90.plot_cmp_vasp_w90(args.name, ylim=args.ylim,
                           font=args.fontfamily, size=args.fontsize)
 
@@ -280,8 +280,9 @@ def eig(args):
     if args.mode[0].lower() == 'd': # dist
         w90.report_eigenval(erange=erange, separate=args.separate)
         if args.plot:
+            bc.cprint(bc.BLUE, f"The output figure should be stored at current dir.")
             w90.plot_eigenval(erange=erange, separate=args.separate,
-                              savefig=os.path.join(os.getcwd(), 'eigenval_dis.pdf'))
+                              savefig=os.path.join(os.getcwd(), 'eig_dist.pdf'))
     elif args.mode[0].lower() == 'c': # count
         # Count how many states inside the energy interval
         bc.cprint(bc.BLUE, 'For `dis_win_min` and `dis_win_max` settings:')
