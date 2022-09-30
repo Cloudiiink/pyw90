@@ -102,6 +102,8 @@ def get_args():
                              help='The path of working dir. Default: .')
     parser_auto.add_argument('--pid', default=None, type=int,
                              help='PID to terminate.')
+    parser_auto.add_argument('--debug', action='store_true', default=False,
+                             help='Change config level for logging to `DEBUG`. Defulat is `INFO`.')
     parser_auto.set_defaults(func=auto)
 
     # compare VASP & Wannier90 result
@@ -150,13 +152,16 @@ def auto(args):
     environ = dict(os.environ)
 
     if args.mode.lower()[0] == 'r':  # run
-        log  = os.path.join(args.path, 'auto_w90_output.txt')
-        p = subprocess.Popen([sys.executable, os.path.join(path, 'auto_w90_fit.py'), '--path', args.path, "--environ", str(environ)],
-                               env    = environ,
-                               stdin  = subprocess.DEVNULL,
-                               stdout = open(log, 'w'),
-                               stderr = open(log, 'w'),
-                               start_new_session=True)
+        log = os.path.join(args.path, 'auto_w90_output.txt')
+        cmd =  [sys.executable, os.path.join(path, 'auto_w90_fit.py'), '--path', args.path, "--environ", str(environ)]
+        if args.debug:
+            cmd.append('--debug')
+        p = subprocess.Popen(cmd,
+                             env    = environ,
+                             stdin  = subprocess.DEVNULL,
+                             stdout = open(log, 'w'),
+                             stderr = open(log, 'w'),
+                             start_new_session=True)
         bc.cprint(bc.BLUE, f'Auto-W90-Fit run with PID: {p.pid}')
 
     elif args.mode.lower()[0] == 'i':   # input
@@ -303,7 +308,8 @@ def eig(args):
         df_win = df_win[df_win["i+1_min"] > min(erange)]
         
         if w90.nwann > 0:
-            print(df_win)
+            with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                print(df_win)
             # suggest frozen window with given energy interval
             df_froz_list = []
             for win_min in df_win['dis_win_min']:
@@ -316,13 +322,15 @@ def eig(args):
                 bc.cprint(bc.RED, '`dis_froz_min` and `dis_froz_max` Table:')
                 bc.cprint(bc.BLUE, f'    Suggest `dis_froz_min` & `dis_froz_max` as following with #WFs = {w90.nwann} from input')
                 bc.cprint(bc.BLUE,  '    Use `pre dos` menu to get suggestions based on projected density of states\n')
-                print(df_froz)
+                with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                    print(df_froz)
             else:
                 bc.cprint(bc.RED, '\nThere is no `dis_froz_min` and `dis_froz_max` recommendation.')
 
         else:
             del df_win['dis_win_max']
-            print(df_win)
+            with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                print(df_win)
 
     else:
         bc.cprint(bc.BLUE, f'Unsupported mode: {args.mode}')

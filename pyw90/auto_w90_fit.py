@@ -29,6 +29,8 @@ def get_args():
                         help='Default: .')
     parser.add_argument('--environ', action='store', type=str, default=None,
                         help='Full Environment Variables from `os.environ`. Default: None')
+    parser.add_argument('--debug', action='store_true', default=False,
+                        help='Change config level for logging to `DEBUG`. Defulat is `INFO`.')
     args = parser.parse_args()
     return args
 
@@ -71,8 +73,8 @@ if __name__ == '__main__':
 
     strtime = time.strftime(r'%Y%m%d%H%M%S', time.localtime())
     logfilename = 'log_autow90_{0}.log'.format(strtime)
-    logging.basicConfig(level=logging.DEBUG,     # logging.INFO
-    # logging.basicConfig(level=logging.INFO,
+    level = logging.DEBUG if args.debug else logging.info
+    logging.basicConfig(level=level,
                         filename=os.path.join(args.path, logfilename),
                         datefmt='%H:%M:%S',
                         format='%(message)s ! %(asctime)s/%(levelname)s/%(module)s/%(lineno)d')

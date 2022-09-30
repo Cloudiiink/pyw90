@@ -8,6 +8,7 @@
 
 import argparse
 import os
+import pandas as pd
 from os.path import abspath, relpath
 
 # pymatgen
@@ -144,7 +145,8 @@ def main_features(args):
         
         if len(args.extra) == 0:
             print()
-            print(dos_df.sort_values('dos', ascending=False))
+            with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                print(dos_df.sort_values('dos', ascending=False))
             print()
             norb, simple_res_df = DOS.get_dos_analysis_df(dos_df, lb=lb)
             nwann = int(norb * args.deg)
@@ -152,7 +154,8 @@ def main_features(args):
             bc.cprint(bc.RED, f"Based on your input, set the lower selection bound to {lb} and {norb} orbitals are selected.")
             bc.cprint(bc.RED, f"Number of WFs selected: {nwann} (with degeneracy {args.deg})\n")
             bc.cprint(bc.RED,  "Orbitals Selected: ")
-            print(simple_res_df)
+            with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                print(simple_res_df)
             print()
             bc.cprint(bc.RED,  "Wannier90 Projection:")
             print(DOS.get_projections_w90_str(simple_res_df, structure))
@@ -196,7 +199,8 @@ def main_features(args):
             bc.cprint(bc.RED,  "Dis frozen window table")
             bc.cprint(bc.BLUE, "The table is sorted according to the percentage of pdos/tdos.")
             bc.cprint(bc.BLUE, "If you want to see `dis_win_min(max)` suggestion, please use `pyw90 eig suggest` menu.")
-            print(dis_froz_dos_df)
+            with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                print(dis_froz_dos_df)
 
             dis_win_max = w90.suggest_win_max(erange[0])
             bc.cprint(bc.RED, f'\nLowest `dis_win_max` for {erange[0]}: {dis_win_max}')
