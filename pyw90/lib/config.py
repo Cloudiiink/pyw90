@@ -54,6 +54,7 @@ class Config():
         self.tol      = float(data.get('tol', 0.02))
         self.maxiter  = int(data.get('maxiter', 100))
         self.niter    = 0
+        self.eps      = 1e-5
 
         kernel_str, mid, width = data['kernel']
         self.kernel_str = f'{kernel_str}, mid: {mid}, width: {width}'
@@ -129,7 +130,7 @@ class Config():
             efermi_str = os.popen(f'grep fermi {os.path.join(self.path, "vasprun.xml")}').read().strip()
             m = re.match('.+ ((\-|\+)?\d+(\.\d+)?) .+', efermi_str)
             efermi = float(m.groups()[0])
-            if np.abs(efermi - self.efermi) < 1e-6:
+            if np.abs(efermi - self.efermi) > self.eps:
                 raise ValueError('The Fermi level {0} searched from `vasprun.xml` is inconsistant with your input {1} in `.yaml`.'.format(efermi, self.efermi))
 
     def info(self):
