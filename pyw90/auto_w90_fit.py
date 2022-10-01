@@ -44,8 +44,8 @@ def main_task(opt_input:ArrayLike, w90:W90) -> float:
         opt_input = w90.rational_opt_input(opt_input)
         w90.show_total_dis_dict(opt_input)
 
-    opt_input_dict = w90.opt_dis_dict(opt_input)
-    w90.edit_win(opt_input_dict)
+    input_dict = w90.total_dis_dict(opt_input)
+    w90.edit_win(input_dict)
 
     # TODO: run job on local machine (or without queueing system) through `wannier90.x`. Check outputs in `wannier90.wout` file or `wannier90_band.dat` file?
     job = Job(w90.config)
@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
     strtime = time.strftime(r'%Y%m%d%H%M%S', time.localtime())
     logfilename = 'log_autow90_{0}.log'.format(strtime)
-    level = logging.DEBUG if args.debug else logging.info
+    level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(level=level,
                         filename=os.path.join(args.path, logfilename),
                         datefmt='%H:%M:%S',
