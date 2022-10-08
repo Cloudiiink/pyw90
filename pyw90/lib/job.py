@@ -52,8 +52,8 @@ class Job():
         # Not sure about job states codes is necessary or not
         # Ref:　https://slurm.schedmd.com/squeue.html
 
-        # Print jobs nice
-        logger.debug('SQUEUE RESULTS'.ljust(80, " "))
+        # Printing jobs nicely
+        logger.debug('FULL SQUEUE RESULTS'.ljust(80, " "))
         for l in str(df).split('\n'):
             logger.debug(l.ljust(80, " "))
             
