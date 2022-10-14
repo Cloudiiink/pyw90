@@ -6,6 +6,7 @@
 # For more information, please refer to https://github.com/Cloudiiink/pyw90.
 # All rights reserved.
 
+from __future__ import annotations
 import argparse
 import os
 import pandas as pd

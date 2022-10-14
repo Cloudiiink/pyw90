@@ -1,3 +1,4 @@
+from __future__ import annotations
 import re, os, copy
 import numpy as np
 from numpy.typing import ArrayLike
