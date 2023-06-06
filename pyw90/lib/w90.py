@@ -411,7 +411,7 @@ class W90():
             bc.cprint(bc.RED, f'Please input vaild number of WF, now is {self.nwann}.')
             return pd.DataFrame(columns=['dis_froz_min', 'dis_froz_max', 'N'])
 
-        elif dN > 0:
+        elif dN >= 0:
             for i in range(0, dN + 1, self.ndeg):
                 # First get froz_max for nwann = nwann_input + i, then get froz_min for nwann = nwann_input and froz_max
                 froz_max = self.suggest_froz_max(emin, nwann=self.nwann+i)
