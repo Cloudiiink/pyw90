@@ -499,7 +499,7 @@ tests/GaAs
 ### Show the distribution of eigenvalues via `eig` menu
 
 ```bash
-$ pyw90 eig report --path ..
+$ pyw90 eig dist --path ..
 
 Calculated Energy Range: -1000.0, 1000.0 with Fermi level 3.468000
 EFERMI:  3.468000
