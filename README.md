@@ -476,10 +476,10 @@ Spread (Ang^2) in `./wannier90.wout`:
 
 The following is a sample folder structure.
 Assuming you are familiar with `Wannier90`, we will not go into detail and you can prepare the necessary files.
-The working folder of following demonstration of `pyw90` is `tests/GaAs/wannier`
+The working folder of following demonstration of `pyw90` is `examples/GaAs/wannier`
 
 ```
-tests/GaAs
+examples/GaAs
 ├── bnd
 │   ├── INCAR
 │   ├── KPOINTS  
