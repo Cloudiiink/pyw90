@@ -41,7 +41,8 @@ class Job():
         #                         capture_output=True, shell=True, text=True)
         # logger.debug(ls.stdout)
         # logger.debug(self.config.environ)
-        fmt = r"%.7i %9P %10j %.8u %.2t %.12M %.5C %.4D"
+        # fmt = r"%.7i %9P %10j %.8u %.2t %.12M %.5C %.4D"
+        fmt = r"%i %P %j %u %t %M %C %D"
         jobs = subprocess.run(["squeue", "-o", fmt, "-u", self.usr_name], 
                                 cwd=self.path, 
                                 env=self.config.environ,

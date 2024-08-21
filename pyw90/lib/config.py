@@ -14,7 +14,7 @@ class Config():
     r'''
     config
     '''
-    def __init__(self, yaml_file:str=None, environ=None):
+    def __init__(self, yaml_file:str=None, environ=None, check=True):
         r'''
         Parse input parameters from `.yaml` file. If there is no specific `.yaml` file given, class will treat the first `.yaml` file as config file.
         '''
@@ -94,7 +94,8 @@ class Config():
         self.display = data.get('display', {'diff': True, 'spread': True})
         # self.display = _replace_str_boolean(data['display'])
 
-        self.check_input()
+        if check:
+            self.check_input()
 
     def check_input(self):
         # check files exist or not
