@@ -17,19 +17,23 @@ keywords = ["python", "vasp", "wannier90", "tight-binding", "solid-state-physics
 homepage = "https://github.com/Cloudiiink/pyw90"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.12"
+python = ">=3.8"
 pymatgen = "*"
-scipy = ">=1.8"
-numpy = ">=1.20.1"
+scipy = "*"
+numpy = "*"
 PyYAML = "*"
 pandas = "*"
-matplotlib = ">=3.4"
+matplotlib = "*"
 
 [tool.poetry.scripts]
 pyw90 = "pyw90.pyw90_cli:main_cli"
 
 [tools.poetry.urls]
 "Bug Tracker" = "https://github.com/Cloudiiink/pyw90/issues"
+
+[tool.poetry.group.test.dependencies]
+pytest = "*"
+pytest-rerunfailures = "*"
 
 [build-system]
 requires = ["poetry-core"]
