@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyw90"
-version = "1.0.7"
+version = "1.0.7.5"
 description = "A VASP and Wannier90 interfaced tool for projection analysis and fully automated dis energy window optimization."
 authors = ["En Wang (Cloudiiink) <wangenzj@gmail.com>"]
 license = "GPL-3.0-only"
@@ -17,15 +17,15 @@ keywords = ["python", "vasp", "wannier90", "tight-binding", "solid-state-physics
 homepage = "https://github.com/Cloudiiink/pyw90"
 
 [tool.poetry.dependencies]
-python = ">=3.8"
+python = ">=3.9"
 pymatgen = "*"
 scipy = "*"
-numpy = "*"
+numpy = "<2.0"  # Main reason for this is the pymatgen dependency, which is not build with numpy>=2.0.0
 PyYAML = "*"
 pandas = "*"
 matplotlib = "*"
 
-[tool.poetry.scripts]
+[tool.poetry.plugins.console_scripts]
 pyw90 = "pyw90.pyw90_cli:main_cli"
 
 [tools.poetry.urls]
@@ -36,7 +36,10 @@ pytest = "*"
 pytest-rerunfailures = "*"
 
 [build-system]
-requires = ["poetry-core"]
+requires = [
+    "poetry-core",
+    "numpy>=2.0.0",
+]
 build-backend = "poetry.core.masonry.api"
 
 [[tool.poetry.source]]
