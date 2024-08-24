@@ -12,7 +12,6 @@ import signal
 import os, sys
 import argparse
 import shutil
-import pandas as pd
 
 # pyw90
 from pyw90.lib.w90 import W90
@@ -201,7 +200,7 @@ def auto(args):
         if usr_input.lower()[0] == 'y':
             os.killpg(os.getpgid(args.pid), signal.SIGTERM)  # Send the signal to all the process groups
             config = Config(yaml_file='auto_w90_input.yaml')
-            jobs = Job(config)
+            jobs = Job(config.job_info)
             jobs.cancel()
             return
         elif usr_input[0].isdigit():
@@ -210,7 +209,7 @@ def auto(args):
                 if upid in all_pid:
                     os.killpg(os.getpgid(upid), signal.SIGTERM)  # Send the signal to all the process groups
             config = Config(yaml_file=os.path.join(args.path, 'auto_w90_input.yaml'))
-            jobs = Job(config)
+            jobs = Job(config.job_info)
             jobs.cancel()
         else:
             return
@@ -308,6 +307,8 @@ def eig(args):
         df_win = w90.suggest_win_table()
         df_win = df_win[df_win["i+1_min"] > min(erange)]
         
+        import pandas as pd
+
         if w90.nwann > 0:
             with pd.option_context('display.max_rows', None, 'display.max_columns', None):
                 print(df_win)

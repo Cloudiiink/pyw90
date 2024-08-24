@@ -97,6 +97,28 @@ class Config():
         if check:
             self.check_input()
 
+    @property
+    def job_info(self):
+        '''
+        Return the dictionary of job information.
+        '''
+        info = {
+            'path'            : self.path,
+            'win'             : self.win,
+            'local'           : self.local,
+            'usr_name'        : self.usr_name,
+            'job_name'        : self.job_name,
+            'num_print_check' : self.num_print_check,
+            'check_time'      : self.check_time,
+            'environ'         : self.environ,
+        }
+        if self.local:
+            info['localrun'] = self.localrun
+        else:
+            info['run'] = self.run
+
+        return info
+
     def check_input(self):
         # check files exist or not
         if self.local:
@@ -129,7 +151,7 @@ class Config():
         # check Fermi level
         if 'vasprun.xml' in os.listdir(os.path.join(self.path)):
             efermi_str = os.popen(f'grep fermi {os.path.join(self.path, "vasprun.xml")}').read().strip()
-            m = re.match('.+ ((\-|\+)?\d+(\.\d+)?) .+', efermi_str)
+            m = re.match(r'.+ ((\-|\+)?\d+(\.\d+)?) .+', efermi_str)
             efermi = float(m.groups()[0])
             if np.abs(efermi - self.efermi) > self.eps:
                 raise ValueError('The Fermi level {0} searched from `vasprun.xml` is inconsistant with your input {1} in `.yaml`.'.format(efermi, self.efermi))

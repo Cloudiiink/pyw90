@@ -49,7 +49,7 @@ def main_task(opt_input:ArrayLike, w90:W90) -> float:
     w90.edit_win(input_dict)
 
     # TODO: run job on local machine (or without queueing system) through `wannier90.x`. Check outputs in `wannier90.wout` file or `wannier90_band.dat` file?
-    job = Job(w90.config)
+    job = Job(w90.config.job_info)
     job.submit()
     logger.info("Successfully submit the task!".ljust(80, ' '))
     time.sleep(5)
